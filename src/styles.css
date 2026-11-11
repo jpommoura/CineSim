@@ -325,3 +325,4 @@ section > .link:first-child { display: inline-block; margin-bottom: 0.9rem; }
 @media (max-width: 560px) {
   .sync-label { display: none; }
 }
+.sync-banner { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; flex-wrap: wrap; padding: 0.7rem 1.5rem; background: color-mix(in srgb, #e0893a 14%, var(--surface)); border-bottom: 1px solid #e0893a; color: var(--text); font-size: 0.85rem; }

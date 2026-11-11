@@ -230,6 +230,13 @@ const dict = {
     pw_submit: 'Unlock',
     pw_wrong: 'Wrong password.',
     pw_offline: 'Use offline on this device',
+    sync_retry: 'Try again',
+    sync_err_db_unreachable: "Can't reach the database. In MongoDB Atlas, open Network Access and allow 0.0.0.0/0 (allow access from anywhere).",
+    sync_err_db_auth: 'The database rejected the login. Check the user and password inside MONGODB_URI (the database user, not APP_PASSWORD).',
+    sync_err_db_dns: "Your network's DNS couldn't resolve the mongodb+srv:// address. In Atlas (Connect → Drivers) turn on “Legacy URI String” and use that address in MONGODB_URI.",
+    sync_err_db_uri: 'MONGODB_URI is malformed. Copy it again from Atlas (Connect → Drivers).',
+    sync_err_timeout: 'The server took too long to answer (probably the database connection). Check Network Access in Atlas.',
+    sync_err_server_error: 'Unexpected server error. See the logs (terminal or Vercel → Logs).',
 
 
     // Arrastar
@@ -476,6 +483,13 @@ const dict = {
     pw_submit: 'Desbloquear',
     pw_wrong: 'Senha errada.',
     pw_offline: 'Usar offline neste aparelho',
+    sync_retry: 'Tentar de novo',
+    sync_err_db_unreachable: 'Não consegui chegar no banco. No MongoDB Atlas, abra Network Access e libere 0.0.0.0/0 (Allow access from anywhere).',
+    sync_err_db_auth: 'O banco recusou o login. Confira o usuário e a senha dentro do MONGODB_URI (a senha do usuário do banco, não a APP_PASSWORD).',
+    sync_err_db_dns: 'O DNS da sua rede não conseguiu resolver o endereço mongodb+srv://. No Atlas (Connect → Drivers), ative “Legacy URI String” e use esse endereço no MONGODB_URI.',
+    sync_err_db_uri: 'O MONGODB_URI está mal formatado. Copie de novo no Atlas (Connect → Drivers).',
+    sync_err_timeout: 'O servidor demorou demais pra responder (provavelmente a conexão com o banco). Confira o Network Access no Atlas.',
+    sync_err_server_error: 'Erro inesperado no servidor. Veja os logs (terminal ou Vercel → Logs).',
 
 
     drag: 'Arraste para reordenar',

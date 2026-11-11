@@ -3,7 +3,7 @@ import { useI18n } from '../i18n.jsx'
 
 const ICONS = { connecting: '⟳', saved: '☁', saving: '⟳', offline: '⚠', local: '💾', locked: '🔒', error: '⚠' }
 
-export function SyncStatus({ status, onClick }) {
+export function SyncStatus({ status, detail, onClick }) {
   const { t } = useI18n()
   const titleKey = { saved: 'sync_saved_title', offline: 'sync_offline_title', local: 'sync_local_title', error: 'sync_error_title', locked: 'sync_locked_title' }[status]
   const clickable = ['offline', 'error', 'locked'].includes(status)
@@ -12,12 +12,24 @@ export function SyncStatus({ status, onClick }) {
       type="button"
       className={`sync-pill sync-${status}`}
       onClick={clickable ? onClick : undefined}
-      title={titleKey ? t(titleKey) : undefined}
+      title={status === 'error' && detail ? `${t(`sync_err_${detail}`)} ${t('sync_error_title')}` : titleKey ? t(titleKey) : undefined}
       aria-live="polite"
     >
       <span className={status === 'saving' || status === 'connecting' ? 'spin' : ''}>{ICONS[status]}</span>
       <span className="sync-label">{t(`sync_${status}`)}</span>
     </button>
+  )
+}
+
+// Faixa com o motivo do erro (aparece abaixo do topo)
+export function SyncErrorBanner({ status, detail, onRetry }) {
+  const { t } = useI18n()
+  if (status !== 'error') return null
+  return (
+    <div className="sync-banner">
+      <span>⚠ {t(detail ? `sync_err_${detail}` : 'sync_error_title')}</span>
+      <button className="btn small" onClick={onRetry}>{t('sync_retry')}</button>
+    </div>
   )
 }
 

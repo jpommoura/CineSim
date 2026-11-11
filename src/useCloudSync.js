@@ -12,6 +12,7 @@ const RETRY_DELAY = 15000
 export function useCloudSync({ universes, films, setUniverses, setFilms }) {
   const [status, setStatus] = useState('connecting')
   const [authError, setAuthError] = useState(false)
+  const [errorDetail, setErrorDetail] = useState('')
   const [synced, setSynced] = useLocalStorage('cinesim:synced', { universes: {}, films: {} })
 
   const statusRef = useRef(status)
@@ -24,6 +25,7 @@ export function useCloudSync({ universes, films, setUniverses, setFilms }) {
 
   const fail = useCallback((e) => {
     const kind = e instanceof CloudError ? e.kind : 'server'
+    setErrorDetail(e instanceof CloudError ? e.detail || '' : '')
     if (kind === 'auth') { ready.current = false; setStatus('locked') }
     else if (kind === 'unavailable') { ready.current = false; setStatus('local') }
     else if (kind === 'network') setStatus('offline')
@@ -56,6 +58,7 @@ export function useCloudSync({ universes, films, setUniverses, setFilms }) {
       setSynced({ universes: mu.synced, films: mf.synced })
       ready.current = true
       setAuthError(false)
+      setErrorDetail('')
       setStatus('saved')
       return 'ok'
     } catch (e) {
@@ -127,5 +130,5 @@ export function useCloudSync({ universes, films, setUniverses, setFilms }) {
 
   const goOffline = useCallback(() => { ready.current = false; setStatus('local') }, [])
 
-  return { status, authError, retry: pull, unlock, goOffline }
+  return { status, authError, errorDetail, retry: pull, unlock, goOffline }
 }

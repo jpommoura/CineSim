@@ -19,7 +19,8 @@ let clientPromise = null
 
 async function getDb() {
   if (!clientPromise) {
-    clientPromise = new MongoClient(process.env.MONGODB_URI).connect().catch((e) => {
+    // Timeout curto: o Vercel encerra a função em ~10 s, então é melhor falhar antes com um erro claro
+    clientPromise = new MongoClient(process.env.MONGODB_URI, { serverSelectionTimeoutMS: 6000 }).connect().catch((e) => {
       clientPromise = null // permite tentar de novo na próxima chamada
       throw e
     })
@@ -48,6 +49,16 @@ function passwordOk(given) {
   const a = Buffer.from(String(given || ''))
   const b = Buffer.from(String(process.env.APP_PASSWORD || ''))
   return a.length === b.length && timingSafeEqual(a, b)
+}
+
+// Traduz erros do MongoDB em códigos simples (sem expor detalhes sensíveis)
+function classify(e) {
+  const msg = String(e?.message || '')
+  if (e?.code === 18 || /auth(entication)? failed|bad auth/i.test(msg)) return 'db_auth'
+  if (e?.syscall === 'querySrv' || /querySrv/i.test(msg)) return 'db_dns'
+  if (e?.name === 'MongoServerSelectionError' || /ENOTFOUND|ETIMEDOUT|ECONNREFUSED|timed out|whitelist|IP address/i.test(msg)) return 'db_unreachable'
+  if (e?.name === 'MongoParseError' || /Invalid scheme|URI/i.test(msg)) return 'db_uri'
+  return 'server_error'
 }
 
 const fromDb = ({ _id, ...doc }) => ({ ...doc, id: doc.id ?? _id })
@@ -106,6 +117,6 @@ export default async function handler(req, res) {
     return await handle(req, res, await getDb())
   } catch (e) {
     console.error('[cinesim api]', e)
-    return send(res, 500, { error: 'server_error' })
+    return send(res, 500, { error: classify(e) })
   }
 }

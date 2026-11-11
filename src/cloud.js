@@ -12,9 +12,10 @@ export const savePassword = (pw) => {
 
 // kind: 'unavailable' (sem API/banco configurado) | 'auth' | 'network' | 'server'
 export class CloudError extends Error {
-  constructor(kind) {
+  constructor(kind, detail = '') {
     super(kind)
     this.kind = kind
+    this.detail = detail // ex.: 'db_auth', 'db_unreachable', 'timeout'
   }
 }
 
@@ -31,9 +32,14 @@ async function call(method, query = '', body) {
   }
   if (res.status === 401) throw new CloudError('auth')
   if (res.status === 404 || res.status === 503) throw new CloudError('unavailable')
+  if (res.status === 504 || res.status === 502) throw new CloudError('server', 'timeout')
   // Sem a API, o servidor devolve o index.html em vez de JSON
   if (!(res.headers.get('content-type') || '').includes('application/json')) throw new CloudError('unavailable')
-  if (!res.ok) throw new CloudError('server')
+  if (!res.ok) {
+    let detail = res.status === 504 ? 'timeout' : ''
+    try { detail = (await res.json()).error || detail } catch { /* resposta sem JSON */ }
+    throw new CloudError('server', detail)
+  }
   return res.json()
 }
 

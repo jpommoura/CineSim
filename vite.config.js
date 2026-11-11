@@ -1,3 +1,4 @@
+import dns from 'node:dns'
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 
@@ -6,6 +7,10 @@ function devApi() {
   return {
     name: 'cinesim-dev-api',
     configureServer(server) {
+      // Alguns roteadores (comum no Windows) não respondem à consulta DNS "SRV" que o
+      // endereço mongodb+srv:// precisa (erro querySrv ECONNREFUSED). No ambiente local,
+      // usamos DNS públicos pra essa resolução. No Vercel isso não é necessário.
+      try { dns.setServers(['1.1.1.1', '8.8.8.8', ...dns.getServers()]) } catch { /* mantém o padrão */ }
       server.middlewares.use('/api/data', async (req, res) => {
         try {
           const mod = await server.ssrLoadModule('/api/data.js')
