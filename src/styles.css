@@ -326,3 +326,23 @@ section > .link:first-child { display: inline-block; margin-bottom: 0.9rem; }
   .sync-label { display: none; }
 }
 .sync-banner { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; flex-wrap: wrap; padding: 0.7rem 1.5rem; background: color-mix(in srgb, #e0893a 14%, var(--surface)); border-bottom: 1px solid #e0893a; color: var(--text); font-size: 0.85rem; }
+
+/* Séries */
+.kind-switch { display: inline-flex; border: 1px solid var(--border); border-radius: 999px; padding: 3px; background: var(--surface-2); margin-top: 0.35rem; }
+.kind-switch button { background: none; border: 0; padding: 0.35rem 0.9rem; border-radius: 999px; font-weight: 600; font-size: 0.85rem; color: var(--muted); }
+.kind-switch button.active { background: var(--accent); color: var(--accent-ink); }
+.card-badges { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+.kind-badge { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; padding: 0.1rem 0.45rem; border-radius: 4px; border: 1px solid var(--border); color: var(--muted); }
+.kind-badge.series { border-color: var(--accent); color: var(--accent); }
+.kind-select { width: auto; flex-shrink: 0; }
+.season { gap: 0.8rem; }
+.episode { display: flex; flex-direction: column; gap: 0.7rem; padding: 0.9rem 1rem; }
+.episode.open { border-color: var(--accent); }
+.episode-head { display: flex; align-items: center; gap: 0.6rem; }
+.ep-code { font-family: 'Bebas Neue'; font-size: 1.2rem; letter-spacing: 0.05em; color: var(--accent); flex-shrink: 0; }
+.episode-fields { display: grid; grid-template-columns: 110px 110px 160px; gap: 0.6rem; }
+.episode-foot { display: flex; justify-content: space-between; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+.episode-acts { border-top: 1px solid var(--border); padding-top: 0.9rem; }
+@media (max-width: 560px) {
+  .episode-fields { grid-template-columns: 1fr 1fr; }
+}

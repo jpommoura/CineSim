@@ -7,6 +7,7 @@ export default function UniverseDetail({ universe, films, onChange, onDelete, on
   const { t, money, lang } = useI18n()
   const [tab, setTab] = useState('details')
   const [newTitle, setNewTitle] = useState('')
+  const [newKind, setNewKind] = useState('film')
   const [existingId, setExistingId] = useState('')
   const [sort, setSort] = useState('story')
 
@@ -40,7 +41,7 @@ export default function UniverseDetail({ universe, films, onChange, onDelete, on
   const createFilm = (e) => {
     e.preventDefault()
     if (!newTitle.trim()) return
-    onCreateFilm(newFilm({ title: newTitle.trim(), budget: null, universeId: universe.id }))
+    onCreateFilm(newFilm({ title: newTitle.trim(), budget: null, universeId: universe.id, kind: newKind }))
     setNewTitle('')
   }
 
@@ -113,6 +114,10 @@ export default function UniverseDetail({ universe, films, onChange, onDelete, on
         <div className="stack">
           <div className="card form-grid">
             <form className="inline" onSubmit={createFilm}>
+              <select value={newKind} onChange={(e) => setNewKind(e.target.value)} aria-label={t('kind_label')} className="kind-select">
+                <option value="film">{t('kind_film')}</option>
+                <option value="series">{t('kind_series')}</option>
+              </select>
               <input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder={t('film_title_ph')} />
               <button className="btn primary" disabled={!newTitle.trim()}>{t('u_new_film')}</button>
             </form>

@@ -66,8 +66,10 @@ export function useLocalStorage(key, initial) {
   return [value, setValue]
 }
 
-export const newFilm = ({ title, budget, universeId }) => ({
+// kind: 'film' | 'series'. Filmes usam `acts`; séries usam `episodes` (cada um com seus atos).
+export const newFilm = ({ title, budget, universeId, kind = 'film' }) => ({
   id: uid(),
+  kind,
   title,
   synopsis: '',
   description: '',
@@ -79,9 +81,20 @@ export const newFilm = ({ title, budget, universeId }) => ({
   releaseYear: null,
   storyOrder: null,
   acts: [],
+  episodes: [],
   characters: [],
   actors: [],
   createdAt: Date.now(),
+})
+
+export const newEpisode = ({ season = 1, number = 1, title = '' }) => ({
+  id: uid(),
+  season,
+  number,
+  title,
+  synopsis: '',
+  runtime: null,
+  acts: [],
 })
 
 // Papéis dos personagens (guardados como chave; aceita valores antigos em português)
@@ -90,7 +103,15 @@ const LEGACY_ROLES = { Protagonista: 'protagonist', Antagonista: 'antagonist', P
 export const normalizeRole = (r) => LEGACY_ROLES[r] || (ROLES.includes(r) ? r : 'main')
 
 // Garante que filmes antigos ou importados tenham todos os campos
+const normalizeActs = (acts) =>
+  (acts || []).map((a) => ({
+    summary: '',
+    ...a,
+    scenes: (a.scenes || []).map((s) => ({ location: '', description: '', characterIds: [], duration: null, ...s })),
+  }))
+
 export const normalizeFilm = (f) => ({
+  kind: 'film',
   synopsis: '',
   description: '',
   universeId: null,
@@ -104,12 +125,26 @@ export const normalizeFilm = (f) => ({
   actors: [],
   createdAt: Date.now(),
   ...f,
-  acts: (f.acts || []).map((a) => ({
-    summary: '',
-    ...a,
-    scenes: (a.scenes || []).map((s) => ({ location: '', description: '', characterIds: [], duration: null, ...s })),
-  })),
+  acts: normalizeActs(f.acts),
+  episodes: (f.episodes || []).map((e) => ({ season: 1, number: 1, title: '', synopsis: '', runtime: null, ...e, acts: normalizeActs(e.acts) })),
 })
+
+export const isSeries = (f) => f.kind === 'series'
+
+// Episódios em ordem (temporada, número)
+export const sortedEpisodes = (f) =>
+  [...(f.episodes || [])].sort((a, b) => a.season - b.season || a.number - b.number)
+
+// Contagens que valem pra filme e série
+export const filmCounts = (f) => {
+  const allActs = isSeries(f) ? (f.episodes || []).flatMap((e) => e.acts) : f.acts
+  return {
+    acts: allActs.length,
+    scenes: allActs.reduce((n, a) => n + a.scenes.length, 0),
+    episodes: (f.episodes || []).length,
+    seasons: new Set((f.episodes || []).map((e) => e.season)).size,
+  }
+}
 
 /* ---------- Backup (exportar / importar) ---------- */
 export const buildBackup = (universes, films) => ({

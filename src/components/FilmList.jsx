@@ -9,6 +9,8 @@ export default function FilmList({ films, universes, onCreate, onOpen }) {
   const [title, setTitle] = useState('')
   const [budget, setBudget] = useState('')
   const [universeId, setUniverseId] = useState('')
+  const [kind, setKind] = useState('film')
+  const [filterKind, setFilterKind] = useState('all')
   const [filterUniverse, setFilterUniverse] = useState('all')
   const [search, setSearch] = useState('')
   const [sort, setSort] = useLocalStorage('cinesim:sort', 'created')
@@ -18,19 +20,20 @@ export default function FilmList({ films, universes, onCreate, onOpen }) {
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase()
     const filtered = films.filter((f) => {
+      if (filterKind !== 'all' && (f.kind || 'film') !== filterKind) return false
       if (filterUniverse === 'none' && f.universeId) return false
       if (filterUniverse !== 'all' && filterUniverse !== 'none' && f.universeId !== filterUniverse) return false
       if (!q) return true
       return f.title.toLowerCase().includes(q) || f.tags.some((tag) => tag.toLowerCase().includes(q))
     })
     return sortFilms(filtered, sort, lang)
-  }, [films, filterUniverse, search, sort, lang])
+  }, [films, filterUniverse, filterKind, search, sort, lang])
 
   const submit = (e) => {
     e.preventDefault()
     if (!title.trim()) return
-    onCreate(newFilm({ title: title.trim(), budget: parseMoney(budget, lang), universeId }))
-    setTitle(''); setBudget(''); setUniverseId(''); setShowForm(false)
+    onCreate(newFilm({ title: title.trim(), budget: parseMoney(budget, lang), universeId, kind }))
+    setTitle(''); setBudget(''); setUniverseId(''); setKind('film'); setShowForm(false)
   }
 
   return (
@@ -47,6 +50,14 @@ export default function FilmList({ films, universes, onCreate, onOpen }) {
 
       {showForm && (
         <form className="card form-grid" onSubmit={submit}>
+          <div>
+            <span className="label">{t('kind_label')}</span>
+            <div className="kind-switch" role="group" aria-label={t('kind_label')}>
+              {['film', 'series'].map((k) => (
+                <button key={k} type="button" className={kind === k ? 'active' : ''} onClick={() => setKind(k)}>{t(`kind_${k}`)}</button>
+              ))}
+            </div>
+          </div>
           <label>
             {t('film_title')}
             <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t('film_title_ph')} autoFocus />
@@ -74,6 +85,9 @@ export default function FilmList({ films, universes, onCreate, onOpen }) {
           <option value="all">{t('filter_all')}</option>
           <option value="none">{t('filter_none')}</option>
           {universes.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+        </select>
+        <select value={filterKind} onChange={(e) => setFilterKind(e.target.value)} aria-label={t('kind_label')}>
+          {['all', 'film', 'series'].map((k) => <option key={k} value={k}>{t(`filter_kind_${k}`)}</option>)}
         </select>
         <select value={sort} onChange={(e) => setSort(e.target.value)} aria-label={t('sort_label')}>
           {SORTS.map((m) => <option key={m} value={m}>{t('sort_label')}: {t(`sort_${m}`)}</option>)}

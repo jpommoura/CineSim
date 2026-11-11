@@ -6,6 +6,13 @@ import ActorSearch from './ActorSearch.jsx'
 
 // Personagens e atores ficam em modo de visualização.
 // "Editar" abre um rascunho; só vai pro filme ao clicar em "Salvar".
+// Tira um personagem do "Em cena" de todas as cenas
+const stripChar = (acts, id) =>
+  acts.map((act) => ({
+    ...act,
+    scenes: act.scenes.map((s) => ({ ...s, characterIds: s.characterIds.filter((x) => x !== id) })),
+  }))
+
 export default function CastEditor({ film, onChange }) {
   const { t, money, lang } = useI18n()
 
@@ -45,10 +52,8 @@ export default function CastEditor({ film, onChange }) {
       ...f,
       characters: f.characters.filter((c) => c.id !== id),
       actors: f.actors.map((a) => (a.characterId === id ? { ...a, characterId: null } : a)),
-      acts: f.acts.map((act) => ({
-        ...act,
-        scenes: act.scenes.map((s) => ({ ...s, characterIds: s.characterIds.filter((x) => x !== id) })),
-      })),
+      acts: stripChar(f.acts, id),
+      episodes: (f.episodes || []).map((e) => ({ ...e, acts: stripChar(e.acts, id) })),
     }))
   }
   const onPhoto = async (id, file) => {
