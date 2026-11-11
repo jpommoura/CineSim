@@ -5,6 +5,8 @@ import FilmList from './components/FilmList.jsx'
 import FilmEditor from './components/FilmEditor.jsx'
 import UniverseManager from './components/UniverseManager.jsx'
 import UniverseDetail from './components/UniverseDetail.jsx'
+import { SyncStatus, PasswordModal } from './components/Sync.jsx'
+import { useCloudSync } from './useCloudSync.js'
 
 // Rotas por hash: #/films, #/universes, #/film/:id, #/universe/:id
 const parseHash = () => {
@@ -21,6 +23,8 @@ export default function App() {
   const [depth, setDepth] = useState(0) // navegações feitas dentro do app (pro botão voltar)
 
   const fileRef = useRef(null)
+  const sync = useCloudSync({ universes, films, setUniverses, setFilms })
+  const [showPassword, setShowPassword] = useState(false)
 
   // Migração: garante que filmes salvos antes tenham os campos novos
   useEffect(() => { setFilms((prev) => prev.map(normalizeFilm)) }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -150,6 +154,7 @@ export default function App() {
             CINE<span>SIM</span>
           </button>
           <nav>
+            <SyncStatus status={sync.status} onClick={() => (sync.status === 'locked' ? setShowPassword(true) : sync.retry())} />
             <button className="btn small" onClick={exportData} title={t('export_title')}>⬇ {t('export')}</button>
             <button className="btn small" onClick={() => fileRef.current.click()} title={t('import_title')}>⬆ {t('import')}</button>
             <input ref={fileRef} type="file" accept="application/json,.json" hidden onChange={(e) => importData(e.target.files[0])} />
@@ -170,6 +175,14 @@ export default function App() {
         </header>
 
         <main className="content">{page}</main>
+
+        {(sync.status === 'locked' || showPassword) && sync.status !== 'saved' && sync.status !== 'local' && (
+          <PasswordModal
+            error={sync.authError}
+            onSubmit={async (pw) => { await sync.unlock(pw); setShowPassword(false) }}
+            onOffline={() => { sync.goOffline(); setShowPassword(false) }}
+          />
+        )}
 
         <footer className="footer">
           <span>{t('footer_data')} <a href="https://www.themoviedb.org" target="_blank" rel="noreferrer">TMDB</a>.</span>

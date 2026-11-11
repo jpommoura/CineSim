@@ -60,3 +60,39 @@ Uso gratuito apenas para fins não comerciais, com atribuição ao TMDB (o aviso
 - Padrão em inglês; troque para PT-BR no seletor do topo (fica salvo).
 - Botão ☀/☾ alterna entre modo escuro e claro.
 - Textos ficam em `src/i18n.jsx` — pra adicionar um idioma, crie outro bloco no dicionário e inclua em `LANGS`.
+
+## Sincronização na nuvem (MongoDB Atlas + Vercel)
+Os dados ficam no MongoDB e aparecem em qualquer aparelho (PC, celular). Sem isso configurado,
+o app funciona igual antes, salvando só no navegador ("💾 Só neste aparelho").
+
+```
+Navegador  →  /api/data (função serverless do Vercel)  →  MongoDB Atlas
+```
+
+### 1. MongoDB Atlas (grátis)
+1. Crie um cluster **M0 (Free)**.
+2. **Database Access** → crie um usuário do banco (usuário + senha).
+3. **Network Access** → libere `0.0.0.0/0` (o Vercel não tem IP fixo).
+4. **Connect → Drivers** → copie a connection string e troque `<db_password>` pela senha do usuário.
+
+### 2. Rodar no PC
+1. `npm install` (instala o driver `mongodb`).
+2. No `.env`, além do `VITE_TMDB_KEY`, adicione:
+   ```
+   MONGODB_URI=mongodb+srv://USUARIO:SENHA@...
+   APP_PASSWORD=uma_senha_sua
+   ```
+3. `npm run dev` — a API roda junto (plugin em `vite.config.js`).
+4. Na primeira vez o app pede a `APP_PASSWORD` e envia pra nuvem o que já está no navegador.
+
+### 3. Publicar no Vercel
+1. Importe o repositório do GitHub no Vercel (ele detecta Vite + a pasta `api/`).
+2. **Settings → Environment Variables**: `MONGODB_URI`, `APP_PASSWORD` e `VITE_TMDB_KEY`.
+3. Deploy. No celular, abra o link e digite a senha (fica lembrada no aparelho).
+
+### Como funciona
+- Cada edição é enviada ~1 s depois; ao voltar pra aba/app, ele busca as novidades de outros aparelhos.
+- Sem internet, as mudanças ficam no aparelho e sobem quando a conexão volta.
+- Se o mesmo item for editado em dois aparelhos antes de sincronizar, vale a versão do aparelho que sincronizar por último.
+- Arquivos: `api/data.js` (servidor), `src/cloud.js` (chamadas), `src/sync.js` (merge), `src/useCloudSync.js` (hook).
+- O Atlas gratuito pausa o cluster depois de 30 dias **sem nenhuma conexão**.
