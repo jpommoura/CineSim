@@ -11,8 +11,10 @@ export default function BudgetPanel({ film, onChange }) {
   const save = () => onChange({ budget: parseMoney(draft, lang) })
   const disable = () => { setDraft(''); onChange({ budget: null }) }
 
-  const pct = hasBudget && film.budget > 0 ? Math.min(100, (total / film.budget) * 100) : 0
+  const share = hasBudget && film.budget > 0 ? (total / film.budget) * 100 : 0 // % do orçamento de produção gasto com elenco
+  const pct = Math.min(100, share)
   const over = hasBudget && total > film.budget
+  const heavy = hasBudget && !over && share > 30
   const ranking = [...film.actors].sort((a, b) => b.fee - a.fee)
   const charName = (id) => film.characters.find((c) => c.id === id)?.name
 
@@ -35,16 +37,22 @@ export default function BudgetPanel({ film, onChange }) {
 
         {hasBudget && (
           <>
-            <div className="meter"><div className={`meter-fill ${over ? 'over' : ''}`} style={{ width: `${pct}%` }} /></div>
+            <div className="meter has-marks">
+              <div className={`meter-fill ${over ? 'over' : heavy ? 'warn' : ''}`} style={{ width: `${pct}%` }} />
+              <span className="meter-mark" style={{ left: '15%' }} />
+              <span className="meter-mark" style={{ left: '30%' }} />
+            </div>
             <div className="kpis">
               <div><span className="muted small">{t('budget_label')}</span><strong>{money(film.budget)}</strong></div>
-              <div><span className="muted small">{t('budget_spent')}</span><strong>{money(total)}</strong></div>
+              <div><span className="muted small">{t('budget_spent', { p: Math.round(share) })}</span><strong>{money(total)}</strong></div>
               <div>
                 <span className="muted small">{over ? t('budget_over') : t('budget_left')}</span>
                 <strong className={over ? 'danger' : 'ok'}>{money(Math.abs(film.budget - total))}</strong>
               </div>
             </div>
             {over && <p className="danger small">{t('budget_warning')}</p>}
+            {heavy && <p className="warn-text small">{t('budget_share_warn')}</p>}
+            <p className="muted small">{t('budget_share_hint')}</p>
           </>
         )}
       </div>

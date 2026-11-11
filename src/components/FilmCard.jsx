@@ -6,11 +6,11 @@ export default function FilmCard({ film: f, universeName, onOpen }) {
   const total = castTotal(f)
   const over = f.budget !== null && total > f.budget
   const scenes = f.acts.reduce((n, a) => n + a.scenes.length, 0)
-  const cover = f.characters.find((c) => c.photo)?.photo
+  const cover = f.poster || f.characters.find((c) => c.photo)?.photo
 
   return (
     <button className="film-card" onClick={() => onOpen(f.id)}>
-      <div className="poster">
+      <div className={`poster ${f.poster ? 'has-poster' : ''}`}>
         {cover ? <img src={cover} alt="" /> : <span>{f.title.slice(0, 1).toUpperCase()}</span>}
       </div>
       <div className="film-card-body">
@@ -22,6 +22,9 @@ export default function FilmCard({ film: f, universeName, onOpen }) {
         </div>
         <div className="stats">
           <span>{t('film_stats', { acts: f.acts.length, scenes, chars: f.characters.length })}</span>
+          {(f.releaseYear || f.runtime) && (
+            <span>{[f.releaseYear, f.runtime && t('runtime_card', { m: f.runtime })].filter(Boolean).join(' · ')}</span>
+          )}
           {f.budget !== null && (
             <span className={over ? 'danger' : 'ok'}>
               {money(total)} / {money(f.budget)}

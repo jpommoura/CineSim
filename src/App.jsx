@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
-import { formatBRL, useLocalStorage } from './utils.js'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { buildBackup, downloadJSON, formatMoney, mergeById, normalizeFilm, parseBackup, useLocalStorage } from './utils.js'
 import { I18nContext, LANGS, translate } from './i18n.jsx'
 import FilmList from './components/FilmList.jsx'
 import FilmEditor from './components/FilmEditor.jsx'
@@ -20,6 +20,11 @@ export default function App() {
   const [route, setRoute] = useState(parseHash)
   const [depth, setDepth] = useState(0) // navegações feitas dentro do app (pro botão voltar)
 
+  const fileRef = useRef(null)
+
+  // Migração: garante que filmes salvos antes tenham os campos novos
+  useEffect(() => { setFilms((prev) => prev.map(normalizeFilm)) }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => { document.documentElement.dataset.theme = theme }, [theme])
   useEffect(() => { document.documentElement.lang = lang }, [lang])
   useEffect(() => {
@@ -29,10 +34,31 @@ export default function App() {
   }, [])
 
   const i18n = useMemo(
-    () => ({ lang, t: (key, vars) => translate(lang, key, vars), money: (v) => formatBRL(v, lang) }),
+    () => ({ lang, t: (key, vars) => translate(lang, key, vars), money: (v) => formatMoney(v, lang) }),
     [lang]
   )
   const { t } = i18n
+
+  const exportData = () => {
+    const date = new Date().toISOString().slice(0, 10)
+    downloadJSON(buildBackup(universes, films), `cinesim-backup-${date}.json`)
+  }
+
+  const importData = async (file) => {
+    if (!file) return
+    const data = parseBackup(await file.text())
+    fileRef.current.value = ''
+    if (!data) { alert(t('import_invalid')); return }
+    const counts = { films: data.films.length, universes: data.universes.length }
+    if (window.confirm(t('import_mode', counts))) {
+      setUniverses((prev) => mergeById(prev, data.universes))
+      setFilms((prev) => mergeById(prev, data.films))
+    } else if (window.confirm(t('import_replace'))) {
+      setUniverses(data.universes)
+      setFilms(data.films)
+    } else return
+    alert(t('import_done', counts))
+  }
 
   const go = (path) => { setDepth((d) => d + 1); window.location.hash = path }
   const back = (fallback) => {
@@ -124,6 +150,9 @@ export default function App() {
             CINE<span>SIM</span>
           </button>
           <nav>
+            <button className="btn small" onClick={exportData} title={t('export_title')}>⬇ {t('export')}</button>
+            <button className="btn small" onClick={() => fileRef.current.click()} title={t('import_title')}>⬆ {t('import')}</button>
+            <input ref={fileRef} type="file" accept="application/json,.json" hidden onChange={(e) => importData(e.target.files[0])} />
             <div className="lang-switch" role="group" aria-label="Language">
               {Object.entries(LANGS).map(([code, label]) => (
                 <button key={code} className={lang === code ? 'active' : ''} onClick={() => setLang(code)}>{label}</button>

@@ -42,7 +42,10 @@ export default function UniverseManager({ universes, films, setUniverses, onOpen
         <div className="universe-grid">
           {universes.map((u) => {
             const list = films.filter((f) => f.universeId === u.id).sort((a, b) => a.createdAt - b.createdAt)
-            const covers = list.flatMap((f) => f.characters.filter((c) => c.photo).map((c) => c.photo)).slice(0, 4)
+            const covers = [
+              ...list.filter((f) => f.poster).map((f) => f.poster),
+              ...list.flatMap((f) => f.characters.filter((c) => c.photo).map((c) => c.photo)),
+            ].slice(0, 4)
             return (
               <button key={u.id} className="universe-card" onClick={() => onOpen(u.id)}>
                 <div className="universe-cover">

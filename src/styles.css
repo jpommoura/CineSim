@@ -69,7 +69,7 @@ label, .label { display: flex; flex-direction: column; gap: 0.35rem; font-size: 
 }
 .logo { background: none; border: 0; font-family: 'Bebas Neue'; font-size: 1.9rem; letter-spacing: 0.1em; padding: 0; }
 .logo span { color: var(--accent); }
-.topbar nav { display: flex; gap: 0.3rem; }
+.topbar nav { display: flex; gap: 0.3rem; flex-wrap: wrap; justify-content: flex-end; }
 .topbar nav button { background: none; border: 0; padding: 0.45rem 0.9rem; border-radius: 999px; color: var(--muted); }
 .topbar nav button.active { background: var(--surface-2); color: var(--text); }
 
@@ -269,3 +269,44 @@ section > .link:first-child { display: inline-block; margin-bottom: 0.9rem; }
 .edit-actions.nowrap { flex-wrap: nowrap; justify-content: flex-end; }
 .edit-actions .push { margin-left: auto; }
 .push-top { margin-top: auto; align-self: flex-start; }
+
+/* Pôster */
+.poster.has-poster img { object-position: center 20%; opacity: 1; }
+.poster-field { display: flex; flex-direction: column; gap: 0.35rem; }
+.poster-upload { width: 140px; aspect-ratio: 2 / 3; border: 1px dashed var(--border); border-radius: 8px; display: grid; place-items: center; overflow: hidden; cursor: pointer; text-align: center; color: var(--muted); background: var(--surface-2); font-size: 0.85rem; }
+.poster-upload:hover { border-color: var(--accent); }
+.poster-upload img { width: 100%; height: 100%; object-fit: cover; }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
+
+/* Sugestão de cachê */
+.fee-suggestion { margin-top: 0.45rem; display: flex; flex-direction: column; gap: 0.15rem; padding: 0.5rem 0.65rem; border: 1px solid var(--accent); border-radius: 8px; background: var(--surface); font-size: 0.85rem; }
+.fee-suggestion .link { align-self: flex-start; }
+
+/* Arrastar e soltar */
+.handle { cursor: grab; color: var(--muted); font-size: 1.1rem; padding: 0 0.2rem; user-select: none; flex-shrink: 0; }
+.handle:hover { color: var(--accent); }
+.handle:active { cursor: grabbing; }
+.is-dragging { opacity: 0.4; }
+.drop-line { height: 3px; background: var(--accent); border-radius: 3px; margin: 2px 0; }
+.drop-zone { border-radius: 8px; }
+.drop-zone.active { border: 2px dashed var(--border); padding: 0.8rem; text-align: center; color: var(--muted); font-size: 0.85rem; }
+.drop-zone.active.hover { border-color: var(--accent); color: var(--accent); }
+.nowrap { white-space: nowrap; }
+
+/* Duração */
+.minutes { flex-direction: row; align-items: center; gap: 0.3rem; flex-shrink: 0; }
+.minutes input { width: 70px; }
+.runtime-strip { display: flex; flex-direction: column; gap: 0.45rem; padding: 0.9rem 1.2rem; }
+
+/* Topo com exportar/importar */
+.topbar nav .btn.small { padding: 0.35rem 0.7rem; }
+@media (max-width: 760px) {
+  .field-row { grid-template-columns: 1fr; }
+}
+
+/* Orçamento de produção */
+.meter.has-marks { position: relative; overflow: visible; }
+.meter.has-marks .meter-fill { position: relative; z-index: 0; }
+.meter-mark { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--muted); opacity: 0.6; border-radius: 1px; }
+.meter-fill.warn { background: #e0893a; }
+.warn-text { color: #e0893a; margin: 0; }

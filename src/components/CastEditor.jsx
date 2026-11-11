@@ -1,18 +1,19 @@
 import { useState } from 'react'
-import { castTotal, normalizeRole, resizeImage, ROLES, uid } from '../utils.js'
-import { tmdbEnabled } from '../tmdb.js'
+import { castTotal, normalizeRole, REFERENCE_BUDGET, resizeImage, ROLES, suggestFee, uid } from '../utils.js'
+import { getCareerScore, tmdbEnabled } from '../tmdb.js'
 import { useI18n } from '../i18n.jsx'
 import ActorSearch from './ActorSearch.jsx'
 
 // Personagens e atores ficam em modo de visualização.
 // "Editar" abre um rascunho; só vai pro filme ao clicar em "Salvar".
 export default function CastEditor({ film, onChange }) {
-  const { t, money } = useI18n()
+  const { t, money, lang } = useI18n()
 
   // rascunhos em edição: { [id]: { ...dados, isNew } }
   const [charDrafts, setCharDrafts] = useState({})
   const [actorDrafts, setActorDrafts] = useState({})
   const [errors, setErrors] = useState({})
+  const [suggestions, setSuggestions] = useState({}) // { [actorId]: resultado | 'loading' }
 
   /* ---------- Personagens ---------- */
   const newCharDrafts = Object.values(charDrafts).filter((d) => d.isNew)
@@ -65,11 +66,29 @@ export default function CastEditor({ film, onChange }) {
 
   const addActor = () => {
     const id = uid()
-    setActorDrafts((d) => ({ ...d, [id]: { id, name: '', fee: 0, characterId: null, tmdbId: null, photo: null, knownFor: [], isNew: true } }))
+    setActorDrafts((d) => ({ ...d, [id]: { id, name: '', fee: 0, characterId: null, tmdbId: null, photo: null, knownFor: [], careerScore: null, isNew: true } }))
   }
   const editActor = (a) => setActorDrafts((d) => ({ ...d, [a.id]: { ...a } }))
   const patchActorDraft = (id, patch) => setActorDrafts((d) => ({ ...d, [id]: { ...d[id], ...patch } }))
+  const clearSuggestion = (id) => setSuggestions((s) => { const n = { ...s }; delete n[id]; return n })
+
+  // Sugestão de cachê: papel do personagem + fama pela carreira (TMDB) + porte do filme (orçamento)
+  const suggest = async (id) => {
+    const draft = actorDrafts[id]
+    const role = film.characters.find((c) => c.id === draft.characterId)?.role ?? 'supporting'
+    let score = draft.careerScore ?? null
+    if (draft.tmdbId && score == null && tmdbEnabled) {
+      setSuggestions((s) => ({ ...s, [id]: 'loading' }))
+      try {
+        score = await getCareerScore(draft.tmdbId)
+        patchActorDraft(id, { careerScore: score })
+      } catch { /* sem dados: trata como desconhecido */ }
+    }
+    setSuggestions((s) => ({ ...s, [id]: suggestFee(role, score, film.budget) }))
+  }
+
   const closeActorDraft = (id) => {
+    clearSuggestion(id)
     setActorDrafts((d) => { const n = { ...d }; delete n[id]; return n })
     setErrors((e) => ({ ...e, [id]: null }))
   }
@@ -104,7 +123,7 @@ export default function CastEditor({ film, onChange }) {
     <div className="stack">
       {hasBudget && (
         <div className={`card budget-strip ${over ? 'over' : ''}`}>
-          <span>{t('cast_fees', { total: money(total), budget: money(film.budget) })}</span>
+          <span>{t('cast_fees', { total: money(total), budget: money(film.budget), p: film.budget > 0 ? Math.round((total / film.budget) * 100) : 0 })}</span>
           <span>{over ? t('cast_over', { v: money(total - film.budget) }) : t('cast_left', { v: money(film.budget - total) })}</span>
         </div>
       )}
@@ -194,13 +213,13 @@ export default function CastEditor({ film, onChange }) {
                       <td>
                         <ActorSearch
                           actor={draft}
-                          onType={(name) => patchActorDraft(a.id, { name, tmdbId: null, photo: null, knownFor: [] })}
-                          onPick={(p) => patchActorDraft(a.id, p)}
+                          onType={(name) => { patchActorDraft(a.id, { name, tmdbId: null, photo: null, knownFor: [], careerScore: null }); clearSuggestion(a.id) }}
+                          onPick={(p) => { patchActorDraft(a.id, p); clearSuggestion(a.id) }}
                         />
                         {errors[a.id] && <small className="danger">{errors[a.id]}</small>}
                       </td>
                       <td>
-                        <select value={draft.characterId || ''} onChange={(e) => patchActorDraft(a.id, { characterId: e.target.value || null })}>
+                        <select value={draft.characterId || ''} onChange={(e) => { patchActorDraft(a.id, { characterId: e.target.value || null }); clearSuggestion(a.id) }}>
                           <option value="">{t('none_option')}</option>
                           {film.characters.map((c) => {
                             const taken = film.actors.some((x) => x.id !== a.id && x.characterId === c.id)
@@ -213,7 +232,34 @@ export default function CastEditor({ film, onChange }) {
                         </select>
                       </td>
                       <td>
-                        <input type="number" min="0" step="100" value={draft.fee} onChange={(e) => patchActorDraft(a.id, { fee: e.target.value })} />
+                        <div className="inline">
+                          <input type="number" min="0" step="100" value={draft.fee} onChange={(e) => patchActorDraft(a.id, { fee: e.target.value })} />
+                          <button type="button" className="btn small" onClick={() => suggest(a.id)} title={t('fee_suggest_title')}>{t('fee_suggest')}</button>
+                        </div>
+                        {suggestions[a.id] === 'loading' && <span className="spinner" />}
+                        {suggestions[a.id] && suggestions[a.id] !== 'loading' && (() => {
+                          const sg = suggestions[a.id]
+                          return (
+                            <div className="fee-suggestion">
+                              <strong>{t('fee_suggestion', { min: money(sg.min), max: money(sg.max) })}</strong>
+                              <small className="muted">
+                                {t('fee_basis', { role: t(`role_${sg.role}`), fame: t(`fame_${sg.fame}`) })}
+                                {sg.score != null && ` (${t('fee_score', { s: sg.score.toLocaleString(lang === 'en' ? 'en-US' : 'pt-BR') })})`}
+                                {hasBudget && film.budget > 0 && ` · ${t('fee_of_budget', { p: (sg.mid / film.budget) * 100 < 1 ? '<1' : Math.round((sg.mid / film.budget) * 100) })}`}
+                              </small>
+                              <small className="muted">
+                                {sg.hasBudget
+                                  ? t('fee_size_budget', { f: sg.size, ref: money(REFERENCE_BUDGET) })
+                                  : t('fee_size_default', { ref: money(REFERENCE_BUDGET) })}
+                              </small>
+                              <small className="muted">{t('fee_breakdown', { floor: money(sg.floor), premium: money(sg.premium) })}</small>
+                              {sg.capped && <small className="warn-text">{t('fee_capped')}</small>}
+                              <button type="button" className="link small" onClick={() => { patchActorDraft(a.id, { fee: sg.mid }); clearSuggestion(a.id) }}>
+                                {t('fee_apply', { v: money(sg.mid) })}
+                              </button>
+                            </div>
+                          )
+                        })()}
                       </td>
                       <td>
                         <div className="edit-actions nowrap">

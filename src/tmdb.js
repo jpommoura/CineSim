@@ -40,3 +40,18 @@ export async function searchPeople(query, signal, lang = 'en') {
       knownFor: (p.known_for || []).map((k) => k.title || k.name).filter(Boolean).slice(0, 3),
     }))
 }
+
+// Fama pela carreira: soma os votos dos filmes em que a pessoa atuou,
+// com peso maior para papéis de destaque (ordem nos créditos).
+// Estável e não depende de a pessoa estar "em alta" no momento.
+export async function getCareerScore(id, signal) {
+  const data = await request(`/person/${id}/movie_credits`, {}, signal)
+  const weight = (order) => (order == null ? 0.3 : order <= 2 ? 1 : order <= 6 ? 0.6 : 0.2)
+  const seen = new Set()
+  const contributions = (data.cast || [])
+    .filter((m) => !seen.has(m.id) && seen.add(m.id))
+    .map((m) => (m.vote_count || 0) * weight(m.order))
+    .sort((a, b) => b - a)
+    .slice(0, 25) // os 25 trabalhos mais relevantes
+  return Math.round(contributions.reduce((sum, v) => sum + v, 0))
+}

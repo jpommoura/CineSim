@@ -14,9 +14,20 @@ npm run dev
 - Atos com cenas dentro (locação, descrição, personagens em cena), reordenáveis
 - Personagens com foto opcional (redimensionada automaticamente)
 - Atores com cachê, associados a um personagem (1 ator por personagem)
-- Orçamento de elenco opcional: definir na criação, adicionar depois, alterar ou desligar
+- Orçamento de produção opcional (sem marketing): definir na criação, adicionar depois, alterar ou desligar; mostra quanto o elenco consome (referência: 15–30%)
 - Universos para agrupar filmes
 - Busca por título/tag e filtro por universo
+- Pôster do filme, duração planejada, ano de lançamento e posição na cronologia da história
+- Ordenação de filmes: recentes, título, lançamento ou cronologia da história
+- Arrastar e soltar atos e cenas (segure a alça ⠿); cenas podem mudar de ato
+- Minutos por cena, com cobertura em relação à duração planejada
+- Valores em dólar (USD)
+- Sugestão de cachê opcional (💡 na edição do ator), em 3 camadas:
+  - papel → piso (inspirado no mínimo sindical); pesa mais pra ator desconhecido
+  - fama → adicional por cima do piso (maior multiplicador); vem dos filmes da pessoa no TMDB
+  - orçamento de produção → ajusta o adicional (×0,25 a ×1,5; referência US$ 50 mi) e limita cada cachê a 25% do orçamento
+  - valores de referência em `src/utils.js` (`ROLE_FLOOR`, `ROLE_PREMIUM`, `FAME`, `REFERENCE_BUDGET`)
+- Exportar / importar backup em JSON (mesclar ou substituir)
 - Dados salvos no `localStorage` do navegador
 
 ## Estrutura

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { newFilm, parseMoney } from '../utils.js'
+import { newFilm, parseMoney, SORTS, sortFilms, useLocalStorage } from '../utils.js'
 import { useI18n } from '../i18n.jsx'
 import FilmCard from './FilmCard.jsx'
 
@@ -11,18 +11,20 @@ export default function FilmList({ films, universes, onCreate, onOpen }) {
   const [universeId, setUniverseId] = useState('')
   const [filterUniverse, setFilterUniverse] = useState('all')
   const [search, setSearch] = useState('')
+  const [sort, setSort] = useLocalStorage('cinesim:sort', 'created')
 
   const universeName = (id) => universes.find((u) => u.id === id)?.name
 
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase()
-    return films.filter((f) => {
+    const filtered = films.filter((f) => {
       if (filterUniverse === 'none' && f.universeId) return false
       if (filterUniverse !== 'all' && filterUniverse !== 'none' && f.universeId !== filterUniverse) return false
       if (!q) return true
       return f.title.toLowerCase().includes(q) || f.tags.some((tag) => tag.toLowerCase().includes(q))
     })
-  }, [films, filterUniverse, search])
+    return sortFilms(filtered, sort, lang)
+  }, [films, filterUniverse, search, sort, lang])
 
   const submit = (e) => {
     e.preventDefault()
@@ -72,6 +74,9 @@ export default function FilmList({ films, universes, onCreate, onOpen }) {
           <option value="all">{t('filter_all')}</option>
           <option value="none">{t('filter_none')}</option>
           {universes.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+        </select>
+        <select value={sort} onChange={(e) => setSort(e.target.value)} aria-label={t('sort_label')}>
+          {SORTS.map((m) => <option key={m} value={m}>{t('sort_label')}: {t(`sort_${m}`)}</option>)}
         </select>
       </div>
 

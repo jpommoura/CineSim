@@ -1,15 +1,16 @@
 import { useMemo, useState } from 'react'
-import { castTotal, newFilm, normalizeRole } from '../utils.js'
+import { castTotal, newFilm, normalizeRole, SORTS, sortFilms } from '../utils.js'
 import { useI18n } from '../i18n.jsx'
 import FilmCard from './FilmCard.jsx'
 
 export default function UniverseDetail({ universe, films, onChange, onDelete, onBack, onOpenFilm, onCreateFilm, onUpdateFilm }) {
-  const { t, money } = useI18n()
+  const { t, money, lang } = useI18n()
   const [tab, setTab] = useState('details')
   const [newTitle, setNewTitle] = useState('')
   const [existingId, setExistingId] = useState('')
+  const [sort, setSort] = useState('story')
 
-  const list = films.filter((f) => f.universeId === universe.id).sort((a, b) => a.createdAt - b.createdAt)
+  const list = sortFilms(films.filter((f) => f.universeId === universe.id), sort, lang)
   const others = films.filter((f) => f.universeId !== universe.id)
 
   const totals = useMemo(() => {
@@ -96,8 +97,11 @@ export default function UniverseDetail({ universe, films, onChange, onDelete, on
             </div>
             {list.length > 0 && (
               <ol className="timeline">
-                {list.map((f) => (
-                  <li key={f.id}><button className="link" onClick={() => onOpenFilm(f.id)}>{f.title}</button></li>
+                {sortFilms(list, 'story', lang).map((f) => (
+                  <li key={f.id}>
+                    <button className="link" onClick={() => onOpenFilm(f.id)}>{f.title}</button>
+                    {f.storyOrder != null && <span className="muted small"> · {f.storyOrder}</span>}
+                  </li>
                 ))}
               </ol>
             )}
@@ -123,6 +127,13 @@ export default function UniverseDetail({ universe, films, onChange, onDelete, on
             )}
           </div>
 
+          {list.length > 1 && (
+            <div className="filters">
+              <select value={sort} onChange={(e) => setSort(e.target.value)} aria-label={t('sort_label')}>
+                {SORTS.map((m) => <option key={m} value={m}>{t('sort_label')}: {t(`sort_${m}`)}</option>)}
+              </select>
+            </div>
+          )}
           {list.length === 0 ? (
             <div className="empty"><p>{t('universe_no_films')}</p></div>
           ) : (
