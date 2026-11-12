@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { castTotal, normalizeRole, REFERENCE_BUDGET, resizeImage, ROLES, suggestFee, uid } from '../utils.js'
+import { castTotal, characterPhoto, normalizeRole, REFERENCE_BUDGET, resizeImage, ROLES, suggestFee, uid } from '../utils.js'
 import { getCareerScore, tmdbEnabled } from '../tmdb.js'
 import { useI18n } from '../i18n.jsx'
 import ActorSearch from './ActorSearch.jsx'
@@ -152,7 +152,16 @@ export default function CastEditor({ film, onChange }) {
             return (
               <div key={c.id} className="card char-card editing" onKeyDown={keys(save, cancel)}>
                 <label className="photo">
-                  {draft.photo ? <img src={draft.photo} alt="" /> : <span>{t('photo_add')}<br /><small>{t('photo_opt')}</small></span>}
+                  {draft.photo ? (
+                    <img src={draft.photo} alt="" />
+                  ) : characterPhoto(film, { ...draft, photo: null }, 'w342') ? (
+                    <>
+                      <img className="fallback" src={characterPhoto(film, { ...draft, photo: null }, 'w342').src} alt="" />
+                      <span className="photo-overlay">{t('photo_add')}<br /><small>{t('photo_opt')}</small></span>
+                    </>
+                  ) : (
+                    <span>{t('photo_add')}<br /><small>{t('photo_opt')}</small></span>
+                  )}
                   <input type="file" accept="image/*" hidden onChange={(e) => onPhoto(c.id, e.target.files[0])} />
                 </label>
                 {draft.photo && <button className="link small" onClick={() => patchCharDraft(c.id, { photo: null })}>{t('photo_remove')}</button>}
@@ -174,7 +183,16 @@ export default function CastEditor({ film, onChange }) {
           return (
             <div key={c.id} className="card char-card">
               <div className="photo static">
-                {c.photo ? <img src={c.photo} alt={c.name} /> : <span className="initial">{(c.name || '?').slice(0, 1).toUpperCase()}</span>}
+                {(() => {
+                  const ph = characterPhoto(film, c, 'w342')
+                  if (!ph) return <span className="initial">{(c.name || '?').slice(0, 1).toUpperCase()}</span>
+                  return (
+                    <>
+                      <img src={ph.src} alt={c.name} />
+                      {ph.fromActor && <span className="photo-source" title={t('photo_from_actor_title')}>{t('photo_from_actor')}</span>}
+                    </>
+                  )
+                })()}
               </div>
               <div>
                 <h3>{c.name || t('unnamed')}</h3>

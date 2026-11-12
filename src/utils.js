@@ -279,3 +279,14 @@ export const sortFilms = (list, mode, lang = 'en') => {
   if (mode === 'story') return arr.sort(byNum('storyOrder'))
   return arr.sort((a, b) => b.createdAt - a.createdAt)
 }
+
+/* ---------- Foto do personagem ---------- */
+// Sem foto própria, o personagem usa a foto do ator que o interpreta (vinda do TMDB).
+// size: troca o tamanho da imagem do TMDB (w185 → w342) pra ficar nítida em cards maiores.
+export const characterPhoto = (film, c, size) => {
+  if (c.photo) return { src: c.photo, fromActor: false }
+  const actor = film.actors.find((a) => a.characterId === c.id && a.photo)
+  if (!actor) return null
+  const src = size ? actor.photo.replace(/\/w\d+\//, `/${size}/`) : actor.photo
+  return { src, fromActor: true }
+}

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { castTotal, newFilm, normalizeRole, SORTS, sortFilms } from '../utils.js'
+import { castTotal, characterPhoto, newFilm, normalizeRole, SORTS, sortFilms } from '../utils.js'
 import { useI18n } from '../i18n.jsx'
 import FilmCard from './FilmCard.jsx'
 
@@ -30,7 +30,7 @@ export default function UniverseDetail({ universe, films, onChange, onDelete, on
         const key = (c.name || '').trim().toLowerCase() || `__${c.id}`
         const actor = f.actors.find((a) => a.characterId === c.id)
         const entry = map.get(key) || { key, name: c.name, photo: null, role: c.role, appearances: [] }
-        entry.photo = entry.photo || c.photo
+        entry.photo = entry.photo || characterPhoto(f, c)?.src || null
         entry.appearances.push({ film: f, actor })
         map.set(key, entry)
       })

@@ -346,3 +346,9 @@ section > .link:first-child { display: inline-block; margin-bottom: 0.9rem; }
 @media (max-width: 560px) {
   .episode-fields { grid-template-columns: 1fr 1fr; }
 }
+
+/* Foto do personagem vinda do ator */
+.photo { position: relative; }
+.photo img.fallback { opacity: 0.35; }
+.photo-overlay { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; color: var(--text); font-weight: 600; }
+.photo-source { position: absolute; left: 6px; bottom: 6px; font-size: 0.65rem; font-weight: 600; padding: 0.15rem 0.45rem; border-radius: 4px; background: rgba(0, 0, 0, 0.65); color: #fff; }
