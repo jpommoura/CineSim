@@ -1,4 +1,4 @@
-import { castTotal, characterPhoto, filmCounts, isSeries } from '../utils.js'
+import { castTotal, filmCounts, isSeries } from '../utils.js'
 import { useI18n } from '../i18n.jsx'
 
 export default function FilmCard({ film: f, universeName, onOpen }) {
@@ -7,7 +7,7 @@ export default function FilmCard({ film: f, universeName, onOpen }) {
   const over = f.budget !== null && total > f.budget
   const c = filmCounts(f)
   const series = isSeries(f)
-  const cover = f.poster || f.characters.map((c) => characterPhoto(f, c, 'w342')?.src).find(Boolean)
+  const cover = f.poster || f.characters.find((c) => c.photo)?.photo
 
   return (
     <button className="film-card" onClick={() => onOpen(f.id)}>

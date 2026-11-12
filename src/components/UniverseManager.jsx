@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { characterPhoto, uid } from '../utils.js'
+import { uid } from '../utils.js'
 import { useI18n } from '../i18n.jsx'
 
 // Lista de universos (aba "Universos" da página inicial)
@@ -44,7 +44,7 @@ export default function UniverseManager({ universes, films, setUniverses, onOpen
             const list = films.filter((f) => f.universeId === u.id).sort((a, b) => a.createdAt - b.createdAt)
             const covers = [
               ...list.filter((f) => f.poster).map((f) => f.poster),
-              ...list.flatMap((f) => f.characters.map((c) => characterPhoto(f, c, 'w342')?.src).filter(Boolean)),
+              ...list.flatMap((f) => f.characters.filter((c) => c.photo).map((c) => c.photo)),
             ].slice(0, 4)
             return (
               <button key={u.id} className="universe-card" onClick={() => onOpen(u.id)}>
