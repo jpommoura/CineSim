@@ -132,7 +132,8 @@ label, .label { display: flex; flex-direction: column; gap: 0.35rem; font-size: 
 /* Editor */
 .title-input { flex: 1; font-family: 'Bebas Neue'; font-size: 2.6rem; letter-spacing: 0.04em; background: transparent; border: 0; border-bottom: 1px solid transparent; border-radius: 0; padding: 0.2rem 0; }
 .title-input:focus { border-bottom-color: var(--accent); }
-.tabs { display: flex; gap: 0.2rem; border-bottom: 1px solid var(--border); margin-bottom: 1.4rem; overflow-x: auto; }
+.tabs { display: flex; gap: 0.2rem; border-bottom: 1px solid var(--border); margin-bottom: 1.4rem; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
 .tabs button { background: none; border: 0; padding: 0.7rem 1rem; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; }
 .tabs button.active { color: var(--text); border-bottom-color: var(--accent); }
 
@@ -352,3 +353,10 @@ section > .link:first-child { display: inline-block; margin-bottom: 0.9rem; }
 .photo img.fallback { opacity: 0.35; }
 .photo-overlay { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; color: var(--text); font-weight: 600; }
 .photo-source { position: absolute; left: 6px; bottom: 6px; font-size: 0.65rem; font-weight: 600; padding: 0.15rem 0.45rem; border-radius: 4px; background: rgba(0, 0, 0, 0.65); color: #fff; }
+
+/* Desfazer */
+.undo-toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 60; display: flex; align-items: center; gap: 0.8rem; padding: 0.7rem 0.8rem 0.7rem 1.1rem; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow); max-width: calc(100% - 32px); overflow: hidden; animation: undo-in 0.2s ease; }
+.undo-toast > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.undo-bar { position: absolute; left: 0; bottom: 0; height: 3px; width: 100%; background: var(--accent); transform-origin: left; animation: undo-shrink linear forwards; }
+@keyframes undo-shrink { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+@keyframes undo-in { from { opacity: 0; transform: translate(-50%, 10px); } to { opacity: 1; transform: translate(-50%, 0); } }

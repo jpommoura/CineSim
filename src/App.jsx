@@ -7,6 +7,7 @@ import UniverseManager from './components/UniverseManager.jsx'
 import UniverseDetail from './components/UniverseDetail.jsx'
 import { SyncStatus, SyncErrorBanner, PasswordModal } from './components/Sync.jsx'
 import { useCloudSync } from './useCloudSync.js'
+import { UndoProvider, UndoToast, useUndoState } from './undo.jsx'
 
 // Rotas por hash: #/films, #/universes, #/film/:id, #/universe/:id
 const parseHash = () => {
@@ -75,13 +76,41 @@ export default function App() {
       prev.map((f) => (f.id === id ? (typeof patch === 'function' ? patch(f) : { ...f, ...patch }) : f))
     )
   const createFilm = (film) => { setFilms((prev) => [film, ...prev]); go(`/film/${film.id}`) }
-  const deleteFilm = (id) => { setFilms((prev) => prev.filter((f) => f.id !== id)); window.location.hash = '/films' }
+  const { toast, showUndo, undo, dismiss } = useUndoState()
+
+  // Reinsere um item na mesma posição (se ainda não tiver voltado)
+  const reinsert = (list, item, index) =>
+    list.some((x) => x.id === item.id) ? list : [...list.slice(0, index), item, ...list.slice(index)]
+
+  const deleteFilm = (id) => {
+    const index = films.findIndex((f) => f.id === id)
+    const removed = films[index]
+    setFilms((prev) => prev.filter((f) => f.id !== id))
+    window.location.hash = '/films'
+    if (removed) {
+      showUndo(t('undo_deleted', { name: removed.title || t('unnamed') }), () => {
+        setFilms((prev) => reinsert(prev, removed, index))
+        window.location.hash = `/film/${id}`
+      })
+    }
+  }
 
   const updateUniverse = (id, patch) => setUniverses((prev) => prev.map((u) => (u.id === id ? { ...u, ...patch } : u)))
   const deleteUniverse = (id) => {
+    const index = universes.findIndex((u) => u.id === id)
+    const removed = universes[index]
+    const linked = films.filter((f) => f.universeId === id).map((f) => f.id)
     setUniverses((prev) => prev.filter((u) => u.id !== id))
     setFilms((prev) => prev.map((f) => (f.universeId === id ? { ...f, universeId: null } : f)))
     window.location.hash = '/universes'
+    if (removed) {
+      showUndo(t('undo_deleted', { name: removed.name || t('unnamed') }), () => {
+        setUniverses((prev) => reinsert(prev, removed, index))
+        // devolve os filmes/séries pro universo (se não foram colocados em outro nesse meio-tempo)
+        setFilms((prev) => prev.map((f) => (linked.includes(f.id) && !f.universeId ? { ...f, universeId: id } : f)))
+        window.location.hash = `/universe/${id}`
+      })
+    }
   }
 
   const film = route.page === 'film' && films.find((f) => f.id === route.id)
@@ -148,6 +177,7 @@ export default function App() {
 
   return (
     <I18nContext.Provider value={i18n}>
+      <UndoProvider value={showUndo}>
       <div className="app">
         <header className="topbar">
           <button className="logo" onClick={() => (window.location.hash = '/films')}>
@@ -190,6 +220,8 @@ export default function App() {
           <span>{t('footer_notice')}</span>
         </footer>
       </div>
+        <UndoToast toast={toast} onUndo={undo} onDismiss={dismiss} />
+      </UndoProvider>
     </I18nContext.Provider>
   )
 }

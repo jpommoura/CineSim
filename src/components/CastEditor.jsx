@@ -122,16 +122,9 @@ export default function CastEditor({ film, onChange }) {
   const charName = (id) => film.characters.find((c) => c.id === id)?.name
   const total = castTotal(film)
   const hasBudget = film.budget !== null
-  const over = hasBudget && total > film.budget
 
   return (
     <div className="stack">
-      {hasBudget && (
-        <div className={`card budget-strip ${over ? 'over' : ''}`}>
-          <span>{t('cast_fees', { total: money(total), budget: money(film.budget), p: film.budget > 0 ? Math.round((total / film.budget) * 100) : 0 })}</span>
-          <span>{over ? t('cast_over', { v: money(total - film.budget) }) : t('cast_left', { v: money(film.budget - total) })}</span>
-        </div>
-      )}
 
       {/* ---------- Personagens ---------- */}
       <div className="section-head">

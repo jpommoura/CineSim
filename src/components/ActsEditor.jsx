@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { sceneMinutes, uid } from '../utils.js'
 import { useI18n } from '../i18n.jsx'
+import { useUndo } from '../undo.jsx'
 
 // Arrastar e soltar (HTML5 nativo):
 // - segure a alça ⠿ de um ato para reordenar os atos
 // - segure a alça ⠿ de uma cena para reordenar ou mover para outro ato
 export default function ActsEditor({ film, onChange }) {
   const { t } = useI18n()
+  const showUndo = useUndo()
   const [openActs, setOpenActs] = useState(() => new Set(film.acts.map((a) => a.id)))
   const [armed, setArmed] = useState(null) // id do item cuja alça foi pressionada
   const [dragging, setDragging] = useState(null) // { type: 'act' | 'scene', id, actId }
@@ -22,7 +24,15 @@ export default function ActsEditor({ film, onChange }) {
   }
   const updateAct = (id, patch) => setActs((acts) => acts.map((a) => (a.id === id ? { ...a, ...patch } : a)))
   const removeAct = (id) => {
-    if (window.confirm(t('act_delete_confirm'))) setActs((acts) => acts.filter((a) => a.id !== id))
+    if (!window.confirm(t('act_delete_confirm'))) return
+    const index = film.acts.findIndex((a) => a.id === id)
+    const removed = film.acts[index]
+    setActs((acts) => acts.filter((a) => a.id !== id))
+    if (removed) {
+      showUndo(t('undo_deleted', { name: removed.title || t('unnamed') }), () =>
+        setActs((acts) => (acts.some((a) => a.id === id) ? acts : [...acts.slice(0, index), removed, ...acts.slice(index)]))
+      )
+    }
   }
   const moveActTo = (actId, toIndex) =>
     setActs((acts) => {
@@ -41,7 +51,9 @@ export default function ActsEditor({ film, onChange }) {
     setScenes(actId, (sc) => [...sc, { id: uid(), title: t('scene_default', { n: sc.length + 1 }), location: '', description: '', characterIds: [], duration: null }])
   const updateScene = (actId, sceneId, patch) =>
     setScenes(actId, (sc) => sc.map((s) => (s.id === sceneId ? { ...s, ...patch } : s)))
-  const removeScene = (actId, sceneId) => setScenes(actId, (sc) => sc.filter((s) => s.id !== sceneId))
+  const removeScene = (actId, sceneId) => {
+    if (window.confirm(t('scene_delete_confirm'))) setScenes(actId, (sc) => sc.filter((s) => s.id !== sceneId))
+  }
 
   const moveSceneTo = (fromActId, sceneId, toActId, toIndex) =>
     setActs((acts) => {

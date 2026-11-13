@@ -2,11 +2,13 @@ import { useState } from 'react'
 import { newEpisode, sortedEpisodes } from '../utils.js'
 import { useI18n } from '../i18n.jsx'
 import ActsEditor from './ActsEditor.jsx'
+import { useUndo } from '../undo.jsx'
 
 // Episódios de uma série, agrupados por temporada.
 // Cada episódio tem título, sinopse, duração e os próprios atos e cenas (reaproveita o ActsEditor).
 export default function EpisodesEditor({ film, onChange }) {
   const { t } = useI18n()
+  const showUndo = useUndo()
   const [openId, setOpenId] = useState(null)
 
   const episodes = sortedEpisodes(film)
@@ -29,7 +31,15 @@ export default function EpisodesEditor({ film, onChange }) {
     return ep
   }
   const removeEp = (id) => {
-    if (window.confirm(t('ep_delete_confirm'))) setEpisodes((eps) => eps.filter((e) => e.id !== id))
+    if (!window.confirm(t('ep_delete_confirm'))) return
+    const removed = (film.episodes || []).find((e) => e.id === id)
+    setEpisodes((eps) => eps.filter((e) => e.id !== id))
+    if (removed) {
+      const code = `S${String(removed.season).padStart(2, '0')}E${String(removed.number).padStart(2, '0')}`
+      showUndo(t('undo_deleted', { name: `${code} ${removed.title}`.trim() }), () =>
+        setEpisodes((eps) => (eps.some((e) => e.id === id) ? eps : [...eps, removed]))
+      )
+    }
   }
 
   // O ActsEditor trabalha com { acts, runtime, characters }; aqui ele edita só os atos do episódio
