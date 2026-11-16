@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { castTotal, characterPhoto, normalizeRole, REFERENCE_BUDGET, resizeImage, ROLES, suggestFee, uid } from '../utils.js'
 import { getCareerScore, tmdbEnabled } from '../tmdb.js'
 import { useI18n } from '../i18n.jsx'
@@ -67,43 +67,104 @@ export default function CastEditor({ film, films = [], onChange }) {
       episodes: (f.episodes || []).map((e) => ({ ...e, acts: stripChar(e.acts, id) })),
     }))
   }
-  // Arrastar e soltar pra reordenar personagens
-  const [dragId, setDragId] = useState(null)
-  const [overId, setOverId] = useState(null)
-  const moveChar = (fromId, toId) => {
-    if (!fromId || fromId === toId) return
-    onChange((f) => {
-      const list = [...f.characters]
-      const from = list.findIndex((c) => c.id === fromId)
-      const to = list.findIndex((c) => c.id === toId)
-      if (from < 0 || to < 0) return f
-      const [item] = list.splice(from, 1)
-      list.splice(to, 0, item)
-      return { ...f, characters: list }
-    })
-  }
-  const overRef = useRef(null)
-  const endDrag = () => { setDragId(null); setOverId(null); overRef.current = null }
+  // Arrastar pra reordenar (estilo apps no celular): o card segue o mouse inclinado,
+  // os outros abrem espaço ao vivo e a ordem só é gravada ao soltar.
+  const [drag, setDrag] = useState(null) // { id, order, x, y, offX, offY, w }
+  const dragRef = useRef(null)
+  dragRef.current = drag
+  const gridRef = useRef(null)
+  const cardEls = useRef({})
+  const lastPos = useRef({}) // posições na grade, pra animar quem muda de lugar
+  const pointer = useRef({ x: 0, y: 0 })
+  const cardRef = (id) => (el) => { if (el) cardEls.current[id] = el; else delete cardEls.current[id] }
 
-  // Arrasto feito "na mão" com eventos do mouse (mais confiável que o drag nativo do HTML)
+  const startDrag = (e, id) => {
+    if (e.button !== 0) return
+    e.preventDefault()
+    const el = cardEls.current[id]
+    if (!el) return
+    const r = el.getBoundingClientRect()
+    Object.entries(cardEls.current).forEach(([k, x]) => { lastPos.current[k] = { x: x.offsetLeft, y: x.offsetTop } })
+    pointer.current = { x: e.clientX, y: e.clientY }
+    setDrag({ id, order: film.characters.map((c) => c.id), x: e.clientX, y: e.clientY, offX: e.clientX - r.left, offY: e.clientY - r.top, w: r.width })
+  }
+
+  // Nova ordem conforme o card que está debaixo do ponteiro.
+  // Usa offsetLeft/Top (posição final, ignora a animação) pra não ficar "tremendo".
+  const nextOrder = (cur) => {
+    const grid = gridRef.current
+    if (!grid) return cur.order
+    const g = grid.getBoundingClientRect()
+    const px = pointer.current.x - g.left
+    const py = pointer.current.y - g.top
+    const target = cur.order.find((id) => {
+      const el = cardEls.current[id]
+      return el && px >= el.offsetLeft && px <= el.offsetLeft + el.offsetWidth && py >= el.offsetTop && py <= el.offsetTop + el.offsetHeight
+    })
+    if (!target || target === cur.id) return cur.order
+    const order = cur.order.filter((id) => id !== cur.id)
+    order.splice(cur.order.indexOf(target), 0, cur.id)
+    return order
+  }
+  const withOrder = (cur, extra = {}) => {
+    if (!cur) return cur
+    const order = nextOrder(cur)
+    return order === cur.order && !Object.keys(extra).length ? cur : { ...cur, ...extra, order }
+  }
+
   useEffect(() => {
-    if (!dragId) return
+    if (!drag?.id) return
     const onMove = (e) => {
-      const el = document.elementFromPoint(e.clientX, e.clientY)?.closest('[data-char-id]')
-      const id = el?.dataset.charId ?? null
-      overRef.current = id
-      setOverId(id)
+      pointer.current = { x: e.clientX, y: e.clientY }
+      setDrag((cur) => withOrder(cur, { x: e.clientX, y: e.clientY }))
     }
-    const onUp = () => { moveChar(dragId, overRef.current); endDrag() }
-    document.body.classList.add('is-dragging')
+    const onUp = () => {
+      const d = dragRef.current
+      if (d) {
+        onChange((f) => {
+          const byId = Object.fromEntries(f.characters.map((c) => [c.id, c]))
+          const sorted = d.order.map((id) => byId[id]).filter(Boolean)
+          return { ...f, characters: [...sorted, ...f.characters.filter((c) => !d.order.includes(c.id))] }
+        })
+      }
+      setDrag(null)
+    }
+    const onKey = (e) => { if (e.key === 'Escape') setDrag(null) } // Esc cancela
+    // rola a página sozinho perto das bordas
+    const timer = setInterval(() => {
+      const { y } = pointer.current
+      const edge = 70
+      const dy = y < edge ? -12 : y > window.innerHeight - edge ? 12 : 0
+      if (dy) { window.scrollBy(0, dy); setDrag((cur) => withOrder(cur)) }
+    }, 16)
+    document.body.classList.add('char-drag-active')
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)
+    window.addEventListener('keydown', onKey)
     return () => {
-      document.body.classList.remove('is-dragging')
+      clearInterval(timer)
+      document.body.classList.remove('char-drag-active')
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
+      window.removeEventListener('keydown', onKey)
     }
-  }, [dragId]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [drag?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Animação "FLIP": cada card que mudou de lugar desliza da posição antiga pra nova
+  const orderKey = drag ? drag.order.join() : ''
+  useLayoutEffect(() => {
+    Object.entries(cardEls.current).forEach(([id, el]) => {
+      const now = { x: el.offsetLeft, y: el.offsetTop }
+      const prev = lastPos.current[id]
+      lastPos.current[id] = now
+      if (!drag || !prev || (prev.x === now.x && prev.y === now.y)) return
+      el.style.transition = 'none'
+      el.style.transform = `translate(${prev.x - now.x}px, ${prev.y - now.y}px)`
+      el.getBoundingClientRect() // aplica a posição antiga antes de animar
+      el.style.transition = 'transform 220ms cubic-bezier(.2,.8,.2,1)'
+      el.style.transform = ''
+    })
+  }, [orderKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const onPhoto = async (id, file) => {
     if (!file) return
@@ -181,6 +242,37 @@ export default function CastEditor({ film, films = [], onChange }) {
   const actorOf = (charId) => film.actors.find((a) => a.characterId === charId)
   const charName = (id) => film.characters.find((c) => c.id === id)?.name
   const total = castTotal(film)
+
+  const gripIcon = (
+    <svg viewBox="0 0 10 16" width="10" height="16" aria-hidden><g fill="currentColor"><circle cx="2" cy="2" r="1.5" /><circle cx="8" cy="2" r="1.5" /><circle cx="2" cy="8" r="1.5" /><circle cx="8" cy="8" r="1.5" /><circle cx="2" cy="14" r="1.5" /><circle cx="8" cy="14" r="1.5" /></g></svg>
+  )
+  // Conteúdo do card em modo visualização (usado no card e na "cópia" que segue o mouse)
+  const charBody = (c, actor) => {
+    const ph = characterPhoto(film, c, 'w342')
+    return (
+      <>
+        <div className="photo static">
+          {!ph ? (
+            <span className="initial">{(c.name || '?').slice(0, 1).toUpperCase()}</span>
+          ) : (
+            <>
+              <img src={ph.src} alt={c.name} draggable={false} />
+              {ph.fromActor && <span className="photo-source" title={t('photo_from_actor_title')}>{t('photo_from_actor')}</span>}
+            </>
+          )}
+        </div>
+        <div>
+          <h3>{c.name || t('unnamed')}</h3>
+          <span className="tag">{t(`role_${normalizeRole(c.role)}`)}</span>
+        </div>
+        <p className={`small ${c.description ? '' : 'muted'}`}>{c.description || t('no_description')}</p>
+        <div className="muted small">
+          {actor ? <>🎭 {t('played_by')} <strong>{actor.name || t('actor_unnamed')}</strong></> : t('no_actor')}
+        </div>
+        <button className="btn small push-top" onClick={() => editChar(c)}>{t('edit')}</button>
+      </>
+    )
+  }
   const hasBudget = film.budget !== null
 
   return (
@@ -206,8 +298,11 @@ export default function CastEditor({ film, films = [], onChange }) {
 
       {charList.length === 0 && <p className="muted">{t('characters_empty')}</p>}
 
-      <div className="char-grid">
-        {charList.map((c) => {
+      <div className="char-grid" ref={gridRef}>
+        {(drag
+          ? [...drag.order.map((id) => film.characters.find((c) => c.id === id)).filter(Boolean), ...newCharDrafts]
+          : charList
+        ).map((c) => {
           const draft = charDrafts[c.id]
           const actor = actorOf(c.id)
 
@@ -215,7 +310,7 @@ export default function CastEditor({ film, films = [], onChange }) {
             const cancel = () => closeCharDraft(c.id)
             const save = () => saveChar(c.id)
             return (
-              <div key={c.id} className="card char-card editing" onKeyDown={keys(save, cancel)}>
+              <div key={c.id} ref={cardRef(c.id)} className="card char-card editing" onKeyDown={keys(save, cancel)}>
                 <label className="photo">
                   {draft.photo ? (
                     <img src={draft.photo} alt="" />
@@ -248,44 +343,30 @@ export default function CastEditor({ film, films = [], onChange }) {
           return (
             <div
               key={c.id}
-              data-char-id={c.id}
-              className={`card char-card ${dragId === c.id ? 'dragging' : ''} ${overId === c.id && dragId && dragId !== c.id ? 'drag-over' : ''}`}
+              ref={cardRef(c.id)}
+              className={`card char-card ${drag?.id === c.id ? 'drag-placeholder' : ''}`}
             >
               {film.characters.length > 1 && (
-                <span
-                  className="drag-handle"
-                  title={t('drag_hint')}
-                  aria-label={t('drag_hint')}
-                  onPointerDown={(e) => { if (e.button !== 0) return; e.preventDefault(); setDragId(c.id); overRef.current = c.id; setOverId(c.id) }}
-                >
-                  <svg viewBox="0 0 10 16" width="10" height="16" aria-hidden><g fill="currentColor"><circle cx="2" cy="2" r="1.5"/><circle cx="8" cy="2" r="1.5"/><circle cx="2" cy="8" r="1.5"/><circle cx="8" cy="8" r="1.5"/><circle cx="2" cy="14" r="1.5"/><circle cx="8" cy="14" r="1.5"/></g></svg>
+                <span className="drag-handle" title={t('drag_hint')} aria-label={t('drag_hint')} onPointerDown={(e) => startDrag(e, c.id)}>
+                  {gripIcon}
                 </span>
               )}
-              <div className="photo static">
-                {(() => {
-                  const ph = characterPhoto(film, c, 'w342')
-                  if (!ph) return <span className="initial">{(c.name || '?').slice(0, 1).toUpperCase()}</span>
-                  return (
-                    <>
-                      <img src={ph.src} alt={c.name} draggable={false} />
-                      {ph.fromActor && <span className="photo-source" title={t('photo_from_actor_title')}>{t('photo_from_actor')}</span>}
-                    </>
-                  )
-                })()}
-              </div>
-              <div>
-                <h3>{c.name || t('unnamed')}</h3>
-                <span className="tag">{t(`role_${normalizeRole(c.role)}`)}</span>
-              </div>
-              <p className={`small ${c.description ? '' : 'muted'}`}>{c.description || t('no_description')}</p>
-              <div className="muted small">
-                {actor ? <>🎭 {t('played_by')} <strong>{actor.name || t('actor_unnamed')}</strong></> : t('no_actor')}
-              </div>
-              <button className="btn small push-top" onClick={() => editChar(c)}>{t('edit')}</button>
+              {charBody(c, actor)}
             </div>
           )
         })}
       </div>
+
+      {drag && (() => {
+        const c = film.characters.find((x) => x.id === drag.id)
+        if (!c) return null
+        return (
+          <div className="card char-card drag-ghost" style={{ width: drag.w, left: drag.x - drag.offX, top: drag.y - drag.offY }} aria-hidden>
+            <span className="drag-handle">{gripIcon}</span>
+            {charBody(c, actorOf(c.id))}
+          </div>
+        )
+      })()}
 
       {/* ---------- Atores ---------- */}
       <div className="section-head">

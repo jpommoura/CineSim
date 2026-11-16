@@ -395,9 +395,12 @@ section > .link:first-child { display: inline-block; margin-bottom: 0.9rem; }
 .char-card { position: relative; }
 .drag-handle { position: absolute; top: 8px; right: 8px; z-index: 2; display: grid; place-items: center; width: 28px; height: 32px; border-radius: 6px; color: var(--muted); background: var(--surface-2); border: 1px solid var(--border); cursor: grab; touch-action: none; user-select: none; }
 .drag-handle:hover { color: var(--accent); border-color: var(--accent); }
-.char-card.dragging { opacity: 0.4; }
-.char-card.drag-over { outline: 2px dashed var(--accent); outline-offset: 3px; }
-body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select: none !important; }
+.char-grid { position: relative; }
+.char-card.drag-placeholder { background: transparent; border: 2px dashed var(--accent); }
+.char-card.drag-placeholder > * { visibility: hidden; }
+.drag-ghost { position: fixed; z-index: 100; margin: 0; pointer-events: none; border-color: var(--accent); box-shadow: 0 24px 50px rgba(0, 0, 0, 0.45); transform: rotate(3deg) scale(1.04); animation: drag-pickup 0.15s ease-out; }
+@keyframes drag-pickup { from { transform: rotate(0) scale(1); } to { transform: rotate(3deg) scale(1.04); } }
+body.char-drag-active, body.char-drag-active * { cursor: grabbing !important; user-select: none !important; }
 
 /* Ordenação da lista de atores */
 .sort-select { width: auto; }
