@@ -1,13 +1,14 @@
-import { castTotal, filmCounts, isSeries } from '../utils.js'
+import { filmCounts, isSeries } from '../utils.js'
 import { useI18n } from '../i18n.jsx'
 
+// Card resumido: tipo, universo, temporadas/episódios (séries), anos e orçamento
 export default function FilmCard({ film: f, universeName, onOpen }) {
   const { t, money } = useI18n()
-  const total = castTotal(f)
-  const over = f.budget !== null && total > f.budget
   const c = filmCounts(f)
   const series = isSeries(f)
   const cover = f.poster || f.characters.find((c) => c.photo)?.photo
+  const hasYear = f.releaseYear != null
+  const hasStory = f.storyOrder != null
 
   return (
     <button className="film-card" onClick={() => onOpen(f.id)}>
@@ -20,24 +21,16 @@ export default function FilmCard({ film: f, universeName, onOpen }) {
           {universeName && <span className="universe-badge">{universeName}</span>}
         </div>
         <h3>{f.title}</h3>
-        <p className="muted clamp">{f.synopsis || t('no_synopsis')}</p>
-        <div className="tags">
-          {f.tags.map((tag) => <span key={tag} className="tag">{tag}</span>)}
-        </div>
         <div className="stats">
-          <span>
-            {series
-              ? t('series_stats', { seasons: c.seasons, eps: c.episodes, chars: f.characters.length })
-              : t('film_stats', { acts: c.acts, scenes: c.scenes, chars: f.characters.length })}
-          </span>
-          {(f.releaseYear || f.runtime) && (
-            <span>{[f.releaseYear, f.runtime && t('runtime_card', { m: f.runtime })].filter(Boolean).join(' · ')}</span>
-          )}
-          {f.budget !== null && (
-            <span className={over ? 'danger' : 'ok'}>
-              {money(total)} / {money(f.budget)}
+          {series && <span>{t('card_seasons_eps', { seasons: c.seasons, eps: c.episodes })}</span>}
+          {(hasYear || hasStory) && (
+            <span>
+              {[hasYear && t('card_release', { y: f.releaseYear }), hasStory && t('card_story', { y: f.storyOrder })]
+                .filter(Boolean)
+                .join(' · ')}
             </span>
           )}
+          {f.budget !== null && <span className="ok">{t('card_budget', { v: money(f.budget) })}</span>}
         </div>
       </div>
     </button>
