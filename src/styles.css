@@ -390,3 +390,12 @@ section > .link:first-child { display: inline-block; margin-bottom: 0.9rem; }
 .import-name { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
 .import-desc { margin: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .import-foot { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; padding-top: 0.6rem; border-top: 1px solid var(--border); }
+
+/* Reordenar personagens arrastando */
+.char-card.draggable { cursor: grab; transition: opacity 0.12s, outline-color 0.12s; }
+.char-card.draggable:active { cursor: grabbing; }
+.char-card.dragging { opacity: 0.4; }
+.char-card.drag-over { outline: 2px dashed var(--accent); outline-offset: 3px; }
+
+/* Ordenação da lista de atores */
+.sort-select { width: auto; }
