@@ -14,7 +14,7 @@ const tabsFor = (series) => [
   { id: 'orcamento', label: 'tab_budget' },
 ]
 
-export default function FilmEditor({ film, universes, onChange, onDelete, onBack, onOpenUniverse }) {
+export default function FilmEditor({ film, films = [], universes, onChange, onDelete, onBack, onOpenUniverse }) {
   const { t } = useI18n()
   const [rawTab, setTab] = useState('geral')
   const universe = universes.find((u) => u.id === film.universeId)
@@ -146,7 +146,7 @@ export default function FilmEditor({ film, universes, onChange, onDelete, onBack
 
       {tab === 'roteiro' && !series && <ActsEditor film={film} onChange={onChange} />}
       {tab === 'episodios' && series && <EpisodesEditor film={film} onChange={onChange} />}
-      {tab === 'elenco' && <CastEditor film={film} onChange={onChange} />}
+      {tab === 'elenco' && <CastEditor film={film} films={films} onChange={onChange} />}
       {tab === 'orcamento' && <BudgetPanel film={film} onChange={onChange} />}
     </section>
   )

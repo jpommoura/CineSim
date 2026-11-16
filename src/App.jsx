@@ -124,6 +124,7 @@ export default function App() {
       <FilmEditor
         key={film.id}
         film={film}
+        films={films}
         universes={universes}
         onChange={(patch) => updateFilm(film.id, patch)}
         onDelete={() => deleteFilm(film.id)}

@@ -3,6 +3,7 @@ import { castTotal, characterPhoto, normalizeRole, REFERENCE_BUDGET, resizeImage
 import { getCareerScore, tmdbEnabled } from '../tmdb.js'
 import { useI18n } from '../i18n.jsx'
 import ActorSearch from './ActorSearch.jsx'
+import ImportCharacters from './ImportCharacters.jsx'
 
 // Personagens e atores ficam em modo de visualização.
 // "Editar" abre um rascunho; só vai pro filme ao clicar em "Salvar".
@@ -13,7 +14,7 @@ const stripChar = (acts, id) =>
     scenes: act.scenes.map((s) => ({ ...s, characterIds: s.characterIds.filter((x) => x !== id) })),
   }))
 
-export default function CastEditor({ film, onChange }) {
+export default function CastEditor({ film, films = [], onChange }) {
   const { t, money, lang } = useI18n()
 
   // rascunhos em edição: { [id]: { ...dados, isNew } }
@@ -21,6 +22,7 @@ export default function CastEditor({ film, onChange }) {
   const [actorDrafts, setActorDrafts] = useState({})
   const [errors, setErrors] = useState({})
   const [suggestions, setSuggestions] = useState({}) // { [actorId]: resultado | 'loading' }
+  const [showImport, setShowImport] = useState(false)
 
   /* ---------- Personagens ---------- */
   const newCharDrafts = Object.values(charDrafts).filter((d) => d.isNew)
@@ -129,8 +131,15 @@ export default function CastEditor({ film, onChange }) {
       {/* ---------- Personagens ---------- */}
       <div className="section-head">
         <h2>{t('characters')}</h2>
-        <button className="btn primary" onClick={addCharacter}>{t('character_add')}</button>
+        <div className="inline">
+          <button className={`btn ${showImport ? 'active' : ''}`} onClick={() => setShowImport((v) => !v)}>
+            {t('import_chars_toggle')} {showImport ? '▴' : '▾'}
+          </button>
+          <button className="btn primary" onClick={addCharacter}>{t('character_add')}</button>
+        </div>
       </div>
+
+      {showImport && <ImportCharacters film={film} films={films} onChange={onChange} />}
 
       {charList.length === 0 && <p className="muted">{t('characters_empty')}</p>}
 
