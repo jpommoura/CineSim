@@ -34,7 +34,8 @@ export default function ImportCharacters({ film, films, onChange, onClose }) {
         const id = uid()
         newChars.push({ ...c, id, role: normalizeRole(c.role) })
         const actor = withActor && source.actors.find((a) => a.characterId === c.id)
-        if (actor) newActors.push({ ...actor, id: uid(), characterId: id })
+        // cachê não vem junto: depende do papel e do orçamento deste filme
+        if (actor) newActors.push({ ...actor, id: uid(), characterId: id, fee: 0 })
       })
     onChange((f) => ({
       ...f,

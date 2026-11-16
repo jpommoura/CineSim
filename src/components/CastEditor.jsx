@@ -67,6 +67,44 @@ export default function CastEditor({ film, films = [], onChange }) {
       episodes: (f.episodes || []).map((e) => ({ ...e, acts: stripChar(e.acts, id) })),
     }))
   }
+  // Arrastar e soltar pra reordenar personagens
+  const [dragId, setDragId] = useState(null)
+  const [overId, setOverId] = useState(null)
+  const moveChar = (fromId, toId) => {
+    if (!fromId || fromId === toId) return
+    onChange((f) => {
+      const list = [...f.characters]
+      const from = list.findIndex((c) => c.id === fromId)
+      const to = list.findIndex((c) => c.id === toId)
+      if (from < 0 || to < 0) return f
+      const [item] = list.splice(from, 1)
+      list.splice(to, 0, item)
+      return { ...f, characters: list }
+    })
+  }
+  const overRef = useRef(null)
+  const endDrag = () => { setDragId(null); setOverId(null); overRef.current = null }
+
+  // Arrasto feito "na mão" com eventos do mouse (mais confiável que o drag nativo do HTML)
+  useEffect(() => {
+    if (!dragId) return
+    const onMove = (e) => {
+      const el = document.elementFromPoint(e.clientX, e.clientY)?.closest('[data-char-id]')
+      const id = el?.dataset.charId ?? null
+      overRef.current = id
+      setOverId(id)
+    }
+    const onUp = () => { moveChar(dragId, overRef.current); endDrag() }
+    document.body.classList.add('is-dragging')
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+    return () => {
+      document.body.classList.remove('is-dragging')
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+    }
+  }, [dragId]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const onPhoto = async (id, file) => {
     if (!file) return
     try {
@@ -78,7 +116,18 @@ export default function CastEditor({ film, films = [], onChange }) {
 
   /* ---------- Atores ---------- */
   const newActorDrafts = Object.values(actorDrafts).filter((d) => d.isNew)
-  const actorList = [...film.actors, ...newActorDrafts]
+  const [actorSort, setActorSort] = useState('chars')
+  const charIndex = (id) => {
+    const i = film.characters.findIndex((c) => c.id === id)
+    return i < 0 ? Number.MAX_SAFE_INTEGER : i // sem personagem vai pro fim
+  }
+  const SORTS = {
+    chars: (a, b) => charIndex(a.characterId) - charIndex(b.characterId),
+    fee_desc: (a, b) => (Number(b.fee) || 0) - (Number(a.fee) || 0),
+    fee_asc: (a, b) => (Number(a.fee) || 0) - (Number(b.fee) || 0),
+    name: (a, b) => (a.name || '').localeCompare(b.name || '', lang),
+  }
+  const actorList = [...[...film.actors].sort(SORTS[actorSort]), ...newActorDrafts]
 
   const addActor = () => {
     const id = uid()
@@ -197,14 +246,28 @@ export default function CastEditor({ film, films = [], onChange }) {
           }
 
           return (
-            <div key={c.id} className="card char-card">
+            <div
+              key={c.id}
+              data-char-id={c.id}
+              className={`card char-card ${dragId === c.id ? 'dragging' : ''} ${overId === c.id && dragId && dragId !== c.id ? 'drag-over' : ''}`}
+            >
+              {film.characters.length > 1 && (
+                <span
+                  className="drag-handle"
+                  title={t('drag_hint')}
+                  aria-label={t('drag_hint')}
+                  onPointerDown={(e) => { if (e.button !== 0) return; e.preventDefault(); setDragId(c.id); overRef.current = c.id; setOverId(c.id) }}
+                >
+                  <svg viewBox="0 0 10 16" width="10" height="16" aria-hidden><g fill="currentColor"><circle cx="2" cy="2" r="1.5"/><circle cx="8" cy="2" r="1.5"/><circle cx="2" cy="8" r="1.5"/><circle cx="8" cy="8" r="1.5"/><circle cx="2" cy="14" r="1.5"/><circle cx="8" cy="14" r="1.5"/></g></svg>
+                </span>
+              )}
               <div className="photo static">
                 {(() => {
                   const ph = characterPhoto(film, c, 'w342')
                   if (!ph) return <span className="initial">{(c.name || '?').slice(0, 1).toUpperCase()}</span>
                   return (
                     <>
-                      <img src={ph.src} alt={c.name} />
+                      <img src={ph.src} alt={c.name} draggable={false} />
                       {ph.fromActor && <span className="photo-source" title={t('photo_from_actor_title')}>{t('photo_from_actor')}</span>}
                     </>
                   )
@@ -227,7 +290,14 @@ export default function CastEditor({ film, films = [], onChange }) {
       {/* ---------- Atores ---------- */}
       <div className="section-head">
         <h2>{t('actors')}</h2>
-        <button className="btn primary" onClick={addActor}>{t('actor_add')}</button>
+        <div className="inline">
+          {film.actors.length > 1 && (
+            <select className="sort-select" value={actorSort} onChange={(e) => setActorSort(e.target.value)} aria-label={t('sort_label')}>
+              {Object.keys(SORTS).map((k) => <option key={k} value={k}>{t(`sort_${k}`)}</option>)}
+            </select>
+          )}
+          <button className="btn primary" onClick={addActor}>{t('actor_add')}</button>
+        </div>
       </div>
 
       {!tmdbEnabled && <p className="muted small">💡 {t('tmdb_hint')}</p>}
