@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { castTotal, characterPhoto, normalizeRole, REFERENCE_BUDGET, resizeImage, ROLES, suggestFee, uid } from '../utils.js'
 import { getCareerScore, tmdbEnabled } from '../tmdb.js'
 import { useI18n } from '../i18n.jsx'
@@ -23,6 +23,15 @@ export default function CastEditor({ film, films = [], onChange }) {
   const [errors, setErrors] = useState({})
   const [suggestions, setSuggestions] = useState({}) // { [actorId]: resultado | 'loading' }
   const [showImport, setShowImport] = useState(false)
+  const [addMenu, setAddMenu] = useState(false)
+  const addMenuRef = useRef(null)
+  // fecha o menu da setinha ao clicar fora
+  useEffect(() => {
+    if (!addMenu) return
+    const onDown = (e) => { if (!addMenuRef.current?.contains(e.target)) setAddMenu(false) }
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
+  }, [addMenu])
 
   /* ---------- Personagens ---------- */
   const newCharDrafts = Object.values(charDrafts).filter((d) => d.isNew)
@@ -131,15 +140,20 @@ export default function CastEditor({ film, films = [], onChange }) {
       {/* ---------- Personagens ---------- */}
       <div className="section-head">
         <h2>{t('characters')}</h2>
-        <div className="inline">
-          <button className={`btn ${showImport ? 'active' : ''}`} onClick={() => setShowImport((v) => !v)}>
-            {t('import_chars_toggle')} {showImport ? '▴' : '▾'}
-          </button>
+        <div className="split-btn" ref={addMenuRef}>
           <button className="btn primary" onClick={addCharacter}>{t('character_add')}</button>
+          <button className="btn primary split-caret" onClick={() => setAddMenu((v) => !v)} aria-label={t('import_chars_toggle')} aria-expanded={addMenu}>
+            {addMenu ? '▴' : '▾'}
+          </button>
+          {addMenu && (
+            <div className="split-menu">
+              <button onClick={() => { setAddMenu(false); setShowImport(true) }}>{t('import_chars_toggle')}</button>
+            </div>
+          )}
         </div>
       </div>
 
-      {showImport && <ImportCharacters film={film} films={films} onChange={onChange} />}
+      {showImport && <ImportCharacters film={film} films={films} onChange={onChange} onClose={() => setShowImport(false)} />}
 
       {charList.length === 0 && <p className="muted">{t('characters_empty')}</p>}
 
