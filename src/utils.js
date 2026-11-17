@@ -123,6 +123,7 @@ export const normalizeFilm = (f) => ({
   storyOrder: null,
   characters: [],
   actors: [],
+  seasons: {}, // opções por temporada: { [n]: { listed, title, releaseYear, storyOrder } }
   createdAt: Date.now(),
   ...f,
   acts: normalizeActs(f.acts),
@@ -145,6 +146,26 @@ export const filmCounts = (f) => {
     seasons: new Set((f.episodes || []).map((e) => e.season)).size,
   }
 }
+
+// Temporadas que o usuário habilitou pra aparecer na lista de filmes e séries.
+// Viram "pseudo-obras" (mesmos campos de um filme) pra reaproveitar busca, filtro, ordenação e card.
+export const listedSeasons = (films) =>
+  films.flatMap((f) => {
+    if (!isSeries(f)) return []
+    const present = new Set((f.episodes || []).map((e) => e.season))
+    return Object.entries(f.seasons || {})
+      .filter(([n, s]) => s?.listed && present.has(Number(n)))
+      .map(([n, s]) => ({
+        ...f,
+        id: `${f.id}#s${n}`,
+        title: s.title || f.title,
+        releaseYear: s.releaseYear ?? f.releaseYear,
+        storyOrder: s.storyOrder ?? f.storyOrder,
+        seasonOf: f.id,
+        seasonNumber: Number(n),
+        seasonEpisodes: (f.episodes || []).filter((e) => e.season === Number(n)).length,
+      }))
+  })
 
 /* ---------- Backup (exportar / importar) ---------- */
 export const buildBackup = (universes, films) => ({

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { newFilm, parseMoney, SORTS, sortFilms, useLocalStorage } from '../utils.js'
+import { listedSeasons, newFilm, parseMoney, SORTS, sortFilms, useLocalStorage } from '../utils.js'
 import { useI18n } from '../i18n.jsx'
 import FilmCard from './FilmCard.jsx'
 
@@ -10,7 +10,8 @@ export default function FilmList({ films, universes, onCreate, onOpen }) {
   const [budget, setBudget] = useState('')
   const [universeId, setUniverseId] = useState('')
   const [kind, setKind] = useState('film')
-  const [filterKind, setFilterKind] = useState('all')
+  const [kinds, setKinds] = useLocalStorage('cinesim:kinds', ['film', 'series', 'season'])
+  const toggleKind = (k) => setKinds((cur) => (cur.includes(k) ? cur.filter((x) => x !== k) : [...cur, k]))
   const [filterUniverse, setFilterUniverse] = useState('all')
   const [search, setSearch] = useState('')
   const [sort, setSort] = useLocalStorage('cinesim:sort', 'created')
@@ -19,15 +20,17 @@ export default function FilmList({ films, universes, onCreate, onOpen }) {
 
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase()
-    const filtered = films.filter((f) => {
-      if (filterKind !== 'all' && (f.kind || 'film') !== filterKind) return false
+    const entries = [...films, ...listedSeasons(films)]
+    const filtered = entries.filter((f) => {
+      const kind = f.seasonOf ? 'season' : f.kind || 'film'
+      if (!kinds.includes(kind)) return false
       if (filterUniverse === 'none' && f.universeId) return false
       if (filterUniverse !== 'all' && filterUniverse !== 'none' && f.universeId !== filterUniverse) return false
       if (!q) return true
       return f.title.toLowerCase().includes(q) || f.tags.some((tag) => tag.toLowerCase().includes(q))
     })
     return sortFilms(filtered, sort, lang)
-  }, [films, filterUniverse, filterKind, search, sort, lang])
+  }, [films, filterUniverse, kinds, search, sort, lang])
 
   const submit = (e) => {
     e.preventDefault()
@@ -86,12 +89,29 @@ export default function FilmList({ films, universes, onCreate, onOpen }) {
           <option value="none">{t('filter_none')}</option>
           {universes.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
         </select>
-        <select value={filterKind} onChange={(e) => setFilterKind(e.target.value)} aria-label={t('kind_label')}>
-          {['all', 'film', 'series'].map((k) => <option key={k} value={k}>{t(`filter_kind_${k}`)}</option>)}
-        </select>
         <select value={sort} onChange={(e) => setSort(e.target.value)} aria-label={t('sort_label')}>
           {SORTS.map((m) => <option key={m} value={m}>{t('sort_label')}: {t(`sort_${m}`)}</option>)}
         </select>
+      </div>
+
+      <div className="kind-checks" role="group" aria-label={t('kind_label')}>
+        {['film', 'series', 'season'].map((k) => {
+          const on = kinds.includes(k)
+          return (
+            <div
+              key={k}
+              className="check-row"
+              role="checkbox"
+              aria-checked={on}
+              tabIndex={0}
+              onClick={() => toggleKind(k)}
+              onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggleKind(k) } }}
+            >
+              <span className={`check-box ${on ? 'on' : ''}`} aria-hidden>{on ? '✓' : ''}</span>
+              <span>{t(`filter_check_${k}`)}</span>
+            </div>
+          )
+        })}
       </div>
 
       {visible.length === 0 ? (

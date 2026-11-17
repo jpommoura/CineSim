@@ -11,8 +11,8 @@ import { UndoProvider, UndoToast, useUndoState } from './undo.jsx'
 
 // Rotas por hash: #/films, #/universes, #/film/:id, #/universe/:id
 const parseHash = () => {
-  const [, page = 'films', id] = window.location.hash.replace(/^#/, '').split('/')
-  return { page, id }
+  const [, page = 'films', id, tab] = window.location.hash.replace(/^#/, '').split('/')
+  return { page, id, tab }
 }
 
 export default function App() {
@@ -130,6 +130,7 @@ export default function App() {
         onDelete={() => deleteFilm(film.id)}
         onBack={() => back('/films')}
         onOpenUniverse={(id) => go(`/universe/${id}`)}
+        initialTab={route.tab}
       />
     )
   } else if (universe) {
@@ -161,7 +162,7 @@ export default function App() {
           </div>
         </div>
         {homeTab === 'films' ? (
-          <FilmList films={films} universes={universes} onCreate={createFilm} onOpen={(id) => go(`/film/${id}`)} />
+          <FilmList films={films} universes={universes} onCreate={createFilm} onOpen={(id, tab) => go(`/film/${id}${tab ? `/${tab}` : ''}`)} />
         ) : (
           <UniverseManager universes={universes} films={films} setUniverses={setUniverses} onOpen={(id) => go(`/universe/${id}`)} />
         )}

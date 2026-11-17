@@ -53,6 +53,15 @@ export default function EpisodesEditor({ film, onChange }) {
       return { ...f, episodes: f.episodes.map((e) => (e.id === id ? { ...e, acts: next.acts } : e)) }
     })
 
+  // Opções da temporada (aparecer na lista inicial, com título e anos próprios)
+  const seasonMeta = (n) => (film.seasons || {})[n] || {}
+  const patchSeason = (n, patch) =>
+    onChange((f) => ({ ...f, seasons: { ...(f.seasons || {}), [n]: { ...((f.seasons || {})[n] || {}), ...patch } } }))
+  const toggleListed = (n) => {
+    const m = seasonMeta(n)
+    patchSeason(n, { listed: !m.listed, title: m.title || t('season_list_default', { title: film.title || t('unnamed'), n }) })
+  }
+
   const counts = (ep) => ({ acts: ep.acts.length, scenes: ep.acts.reduce((n, a) => n + a.scenes.length, 0) })
   const num = (v) => (v === '' ? null : Math.max(0, Number(v)))
 
@@ -78,6 +87,41 @@ export default function EpisodesEditor({ film, onChange }) {
               <h2>{t('season_label', { n: season })}</h2>
               <span className="muted small">{t('season_eps', { n: list.length })}</span>
             </div>
+
+            {(() => {
+              const m = seasonMeta(season)
+              return (
+                <div className={`season-listing ${m.listed ? 'on' : ''}`}>
+                  <div
+                    className="check-row"
+                    role="checkbox"
+                    aria-checked={!!m.listed}
+                    tabIndex={0}
+                    onClick={() => toggleListed(season)}
+                    onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggleListed(season) } }}
+                  >
+                    <span className={`check-box ${m.listed ? 'on' : ''}`} aria-hidden>{m.listed ? '✓' : ''}</span>
+                    <span>{t('season_list_toggle')}</span>
+                  </div>
+                  {m.listed && (
+                    <div className="season-listing-fields">
+                      <label>
+                        {t('season_list_title')}
+                        <input value={m.title || ''} onChange={(e) => patchSeason(season, { title: e.target.value })} placeholder={t('season_list_default', { title: film.title, n: season })} />
+                      </label>
+                      <label>
+                        {t('release_year')}
+                        <input type="number" value={m.releaseYear ?? ''} onChange={(e) => patchSeason(season, { releaseYear: e.target.value === '' ? null : Number(e.target.value) })} placeholder={film.releaseYear != null ? String(film.releaseYear) : t('release_year_ph')} />
+                      </label>
+                      <label>
+                        {t('story_order')}
+                        <input type="number" step="any" value={m.storyOrder ?? ''} onChange={(e) => patchSeason(season, { storyOrder: e.target.value === '' ? null : Number(e.target.value) })} placeholder={film.storyOrder != null ? String(film.storyOrder) : t('story_order_ph')} />
+                      </label>
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
 
             {list.map((ep) => {
               const c = counts(ep)

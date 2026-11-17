@@ -404,3 +404,17 @@ body.char-drag-active, body.char-drag-active * { cursor: grabbing !important; us
 
 /* Ordenação da lista de atores */
 .sort-select { width: auto; }
+
+/* Linha com check amarelo (filtros e opções) */
+.check-row { display: inline-flex; align-items: center; gap: 0.55rem; cursor: pointer; user-select: none; font-size: 0.9rem; }
+.check-row:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
+
+/* Filtro por tipo na lista inicial */
+.kind-checks { display: flex; gap: 1.4rem; flex-wrap: wrap; margin: -0.4rem 0 1.3rem; }
+
+/* Temporada na lista de filmes e séries */
+.kind-badge.season { border-color: var(--accent); color: var(--accent-ink); background: var(--accent); }
+.season-listing { display: flex; flex-direction: column; gap: 0.8rem; padding: 0.8rem 1rem; border: 1px dashed var(--border); border-radius: var(--radius); }
+.season-listing.on { border-style: solid; border-color: var(--accent); }
+.season-listing-fields { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 0.7rem; }
+@media (max-width: 700px) { .season-listing-fields { grid-template-columns: 1fr; } }
