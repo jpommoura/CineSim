@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { newEpisode, sortedEpisodes } from '../utils.js'
+import { newEpisode, seasonNumbers, sortedEpisodes } from '../utils.js'
 import { useI18n } from '../i18n.jsx'
 import ActsEditor from './ActsEditor.jsx'
 import SeasonDetails from './SeasonDetails.jsx'
@@ -14,7 +14,8 @@ export default function EpisodesEditor({ film, onChange }) {
   const [openSeason, setOpenSeason] = useState(null) // temporada com os detalhes abertos
 
   const episodes = sortedEpisodes(film)
-  const seasons = [...new Set(episodes.map((e) => e.season))]
+  // Temporada existe se tem episódio OU foi criada pelo botão (fica registrada em film.seasons)
+  const seasons = seasonNumbers(film)
   const lastSeason = seasons.length ? Math.max(...seasons) : 1
 
   const setEpisodes = (fn) => onChange((f) => ({ ...f, episodes: fn(f.episodes || []) }))
@@ -27,10 +28,20 @@ export default function EpisodesEditor({ film, onChange }) {
     setEpisodes((eps) => [...eps, ep])
     return ep
   }
+  // Cria só a temporada (vazia); os episódios entram depois pelo botão dela
   const addSeason = () => {
-    const ep = addEpisode(episodes.length ? lastSeason + 1 : 1)
+    const n = seasons.length ? lastSeason + 1 : 1
+    onChange((f) => ({ ...f, seasons: { ...(f.seasons || {}), [n]: { ...((f.seasons || {})[n] || {}) } } }))
     setOpenId(null)
-    return ep
+  }
+  const removeSeason = (n) => {
+    const count = episodes.filter((e) => e.season === n).length
+    if (count && !window.confirm(t('season_delete_confirm', { n, eps: count }))) return
+    onChange((f) => {
+      const rest = { ...(f.seasons || {}) }
+      delete rest[n]
+      return { ...f, seasons: rest, episodes: (f.episodes || []).filter((e) => e.season !== n) }
+    })
   }
   const removeEp = (id) => {
     if (!window.confirm(t('ep_delete_confirm'))) return
@@ -67,14 +78,14 @@ export default function EpisodesEditor({ film, onChange }) {
   const counts = (ep) => ({ acts: ep.acts.length, scenes: ep.acts.reduce((n, a) => n + a.scenes.length, 0) })
   const num = (v) => (v === '' ? null : Math.max(0, Number(v)))
 
-  if (episodes.length === 0) {
+  if (seasons.length === 0) {
     return (
       <div className="stack">
         <div className="empty">
-          <p>{t('ep_empty')}</p>
-          <p className="muted">{t('ep_empty_sub')}</p>
+          <p>{t('season_empty')}</p>
+          <p className="muted">{t('season_empty_sub')}</p>
         </div>
-        <button className="btn primary self-start" onClick={() => addEpisode(1)}>{t('ep_add')}</button>
+        <button className="btn primary self-start" onClick={addSeason}>{t('season_add')}</button>
       </div>
     )
   }
@@ -88,6 +99,7 @@ export default function EpisodesEditor({ film, onChange }) {
             <div className="section-head">
               <h2>{t('season_label', { n: season })}</h2>
               <span className="muted small">{t('season_eps', { n: list.length })}</span>
+              <button className="icon danger push" onClick={() => removeSeason(season)} title={t('season_delete')}>🗑</button>
             </div>
 
             {(() => {
@@ -201,6 +213,7 @@ export default function EpisodesEditor({ film, onChange }) {
               )
             })}
 
+            {list.length === 0 && <p className="muted small">{t('ep_empty')}</p>}
             <button className="btn ghost self-start" onClick={() => addEpisode(season)}>{t('ep_add')}</button>
           </section>
         )

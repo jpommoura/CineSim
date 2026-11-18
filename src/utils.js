@@ -132,6 +132,12 @@ export const normalizeFilm = (f) => ({
 
 export const isSeries = (f) => f.kind === 'series'
 
+// Números das temporadas da série (com episódios ou criadas vazias), em ordem
+export const seasonNumbers = (f) =>
+  [...new Set([...(f.episodes || []).map((e) => e.season), ...Object.keys(f.seasons || {}).map(Number)])]
+    .filter((n) => Number.isFinite(n) && n > 0)
+    .sort((a, b) => a - b)
+
 // Episódios em ordem (temporada, número)
 export const sortedEpisodes = (f) =>
   [...(f.episodes || [])].sort((a, b) => a.season - b.season || a.number - b.number)
@@ -143,7 +149,7 @@ export const filmCounts = (f) => {
     acts: allActs.length,
     scenes: allActs.reduce((n, a) => n + a.scenes.length, 0),
     episodes: (f.episodes || []).length,
-    seasons: new Set((f.episodes || []).map((e) => e.season)).size,
+    seasons: seasonNumbers(f).length,
   }
 }
 
@@ -152,7 +158,7 @@ export const filmCounts = (f) => {
 export const listedSeasons = (films) =>
   films.flatMap((f) => {
     if (!isSeries(f)) return []
-    const present = new Set((f.episodes || []).map((e) => e.season))
+    const present = new Set(seasonNumbers(f))
     return Object.entries(f.seasons || {})
       .filter(([n, s]) => s?.listed && present.has(Number(n)))
       .map(([n, s]) => ({
