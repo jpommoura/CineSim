@@ -35,7 +35,7 @@ export default function FilmCard({ film: f, universeName, onOpen }) {
                 .join(' · ')}
             </span>
           )}
-          {!season && f.budget !== null && <span className="ok">{t('card_budget', { v: money(f.budget) })}</span>}
+          {f.budget != null && <span className="ok">{t('card_budget', { v: money(f.budget) })}</span>}
         </div>
       </div>
     </button>

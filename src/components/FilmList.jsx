@@ -19,15 +19,16 @@ export default function FilmList({ films, universes, onCreate, onOpen }) {
   const universeName = (id) => universes.find((u) => u.id === id)?.name
 
   const visible = useMemo(() => {
-    const q = search.trim().toLowerCase()
+    // vírgula separa termos; a obra precisa bater com TODOS (no título ou numa tag)
+    const terms = search.split(',').map((x) => x.trim().toLowerCase()).filter(Boolean)
     const entries = [...films, ...listedSeasons(films)]
     const filtered = entries.filter((f) => {
       const kind = f.seasonOf ? 'season' : f.kind || 'film'
       if (!kinds.includes(kind)) return false
       if (filterUniverse === 'none' && f.universeId) return false
       if (filterUniverse !== 'all' && filterUniverse !== 'none' && f.universeId !== filterUniverse) return false
-      if (!q) return true
-      return f.title.toLowerCase().includes(q) || f.tags.some((tag) => tag.toLowerCase().includes(q))
+      if (!terms.length) return true
+      return terms.every((q) => f.title.toLowerCase().includes(q) || f.tags.some((tag) => tag.toLowerCase().includes(q)))
     })
     return sortFilms(filtered, sort, lang)
   }, [films, filterUniverse, kinds, search, sort, lang])
@@ -83,7 +84,17 @@ export default function FilmList({ films, universes, onCreate, onOpen }) {
       )}
 
       <div className="filters">
-        <input placeholder={t('search_ph')} value={search} onChange={(e) => setSearch(e.target.value)} />
+        <div className="search-box">
+          <input
+            placeholder={t('search_ph')}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Escape') setSearch('') }}
+          />
+          {search && (
+            <button type="button" className="search-clear" onClick={() => setSearch('')} title={t('search_clear')} aria-label={t('search_clear')}>✕</button>
+          )}
+        </div>
         <select value={filterUniverse} onChange={(e) => setFilterUniverse(e.target.value)}>
           <option value="all">{t('filter_all')}</option>
           <option value="none">{t('filter_none')}</option>

@@ -418,3 +418,28 @@ body.char-drag-active, body.char-drag-active * { cursor: grabbing !important; us
 .season-listing.on { border-style: solid; border-color: var(--accent); }
 .season-listing-fields { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 0.7rem; }
 @media (max-width: 700px) { .season-listing-fields { grid-template-columns: 1fr; } }
+
+/* Busca com botão de limpar */
+.search-box { position: relative; flex: 2; display: flex; }
+.search-box input { flex: 1; padding-right: 2.2rem; }
+.search-clear { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 26px; height: 26px; border: 0; border-radius: 50%; background: transparent; color: var(--muted); cursor: pointer; display: grid; place-items: center; font-size: 0.8rem; }
+.search-clear:hover { background: var(--surface-2); color: var(--text); }
+
+/* Detalhes da temporada */
+.season-panel { padding: 0; overflow: hidden; }
+.season-panel.open { border-color: var(--accent); }
+.season-panel-head { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.8rem 1rem; background: none; border: 0; color: var(--text); font: inherit; font-weight: 600; cursor: pointer; text-align: left; }
+.season-panel-head:hover { background: var(--surface-2); }
+.season-details { padding: 0 1rem 1rem; }
+.season-details h3 { margin: 0; }
+.season-details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
+.season-budget { max-width: 320px; }
+.season-cast { display: flex; flex-direction: column; gap: 0.4rem; }
+.season-cast-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; padding: 0.5rem 0.7rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-2); }
+.season-cast-row.on { border-color: var(--accent); }
+.season-cast-name { display: flex; flex-direction: column; }
+.season-fee { flex-direction: row; align-items: center; gap: 0.5rem; }
+.season-fee input { width: 140px; }
+.season-total { font-size: 0.9rem; color: var(--muted); }
+.season-total.danger { color: var(--danger); }
+@media (max-width: 700px) { .season-details-grid { grid-template-columns: 1fr; } }

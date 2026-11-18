@@ -2,14 +2,16 @@ import { useState } from 'react'
 import { newEpisode, sortedEpisodes } from '../utils.js'
 import { useI18n } from '../i18n.jsx'
 import ActsEditor from './ActsEditor.jsx'
+import SeasonDetails from './SeasonDetails.jsx'
 import { useUndo } from '../undo.jsx'
 
 // Episódios de uma série, agrupados por temporada.
 // Cada episódio tem título, sinopse, duração e os próprios atos e cenas (reaproveita o ActsEditor).
 export default function EpisodesEditor({ film, onChange }) {
-  const { t } = useI18n()
+  const { t, money } = useI18n()
   const showUndo = useUndo()
   const [openId, setOpenId] = useState(null)
+  const [openSeason, setOpenSeason] = useState(null) // temporada com os detalhes abertos
 
   const episodes = sortedEpisodes(film)
   const seasons = [...new Set(episodes.map((e) => e.season))]
@@ -122,6 +124,22 @@ export default function EpisodesEditor({ film, onChange }) {
                 </div>
               )
             })()}
+
+            <div className={`card season-panel ${openSeason === season ? 'open' : ''}`}>
+              <button className="season-panel-head" onClick={() => setOpenSeason(openSeason === season ? null : season)}>
+                <span>{openSeason === season ? '▾' : '▸'} {t('season_details', { n: season })}</span>
+                <small className="muted">
+                  {(() => {
+                    const m = seasonMeta(season)
+                    const n = film.characters.filter((c) => (m.cast || {})[c.id]).length
+                    return [t('season_cast_count', { n }), m.budget != null && m.budget !== '' ? money(m.budget) : null].filter(Boolean).join(' · ')
+                  })()}
+                </small>
+              </button>
+              {openSeason === season && (
+                <SeasonDetails film={film} season={season} meta={seasonMeta(season)} episodes={list} onPatch={(patch) => patchSeason(season, patch)} />
+              )}
+            </div>
 
             {list.map((ep) => {
               const c = counts(ep)
