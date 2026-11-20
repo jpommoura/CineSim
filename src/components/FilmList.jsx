@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
-import { listedSeasons, newFilm, parseMoney, SORTS, sortFilms, useLocalStorage } from '../utils.js'
+import { entryKind, listedSeasons, matchesTerms, newFilm, parseMoney, searchTerms, SORTS, sortFilms, useLocalStorage } from '../utils.js'
 import { useI18n } from '../i18n.jsx'
 import FilmCard from './FilmCard.jsx'
+import { KindChecks, SearchBox } from './ListControls.jsx'
 
 export default function FilmList({ films, universes, onCreate, onOpen }) {
   const { t, lang } = useI18n()
@@ -19,16 +20,13 @@ export default function FilmList({ films, universes, onCreate, onOpen }) {
   const universeName = (id) => universes.find((u) => u.id === id)?.name
 
   const visible = useMemo(() => {
-    // vírgula separa termos; a obra precisa bater com TODOS (no título ou numa tag)
-    const terms = search.split(',').map((x) => x.trim().toLowerCase()).filter(Boolean)
+    const terms = searchTerms(search)
     const entries = [...films, ...listedSeasons(films)]
     const filtered = entries.filter((f) => {
-      const kind = f.seasonOf ? 'season' : f.kind || 'film'
-      if (!kinds.includes(kind)) return false
+      if (!kinds.includes(entryKind(f))) return false
       if (filterUniverse === 'none' && f.universeId) return false
       if (filterUniverse !== 'all' && filterUniverse !== 'none' && f.universeId !== filterUniverse) return false
-      if (!terms.length) return true
-      return terms.every((q) => f.title.toLowerCase().includes(q) || f.tags.some((tag) => tag.toLowerCase().includes(q)))
+      return matchesTerms(f, terms)
     })
     return sortFilms(filtered, sort, lang)
   }, [films, filterUniverse, kinds, search, sort, lang])
@@ -84,17 +82,7 @@ export default function FilmList({ films, universes, onCreate, onOpen }) {
       )}
 
       <div className="filters">
-        <div className="search-box">
-          <input
-            placeholder={t('search_ph')}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Escape') setSearch('') }}
-          />
-          {search && (
-            <button type="button" className="search-clear" onClick={() => setSearch('')} title={t('search_clear')} aria-label={t('search_clear')}>✕</button>
-          )}
-        </div>
+        <SearchBox value={search} onChange={setSearch} />
         <select value={filterUniverse} onChange={(e) => setFilterUniverse(e.target.value)}>
           <option value="all">{t('filter_all')}</option>
           <option value="none">{t('filter_none')}</option>
@@ -105,25 +93,7 @@ export default function FilmList({ films, universes, onCreate, onOpen }) {
         </select>
       </div>
 
-      <div className="kind-checks" role="group" aria-label={t('kind_label')}>
-        {['film', 'series', 'season'].map((k) => {
-          const on = kinds.includes(k)
-          return (
-            <div
-              key={k}
-              className="check-row"
-              role="checkbox"
-              aria-checked={on}
-              tabIndex={0}
-              onClick={() => toggleKind(k)}
-              onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggleKind(k) } }}
-            >
-              <span className={`check-box ${on ? 'on' : ''}`} aria-hidden>{on ? '✓' : ''}</span>
-              <span>{t(`filter_check_${k}`)}</span>
-            </div>
-          )
-        })}
-      </div>
+      <KindChecks kinds={kinds} onToggle={toggleKind} />
 
       {visible.length === 0 ? (
         <div className="empty">

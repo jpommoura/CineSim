@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
-import { castTotal, newFilm, normalizeRole, SORTS, sortFilms } from '../utils.js'
+import { castTotal, entryKind, listedSeasons, matchesTerms, newFilm, normalizeRole, searchTerms, SORTS, sortFilms, useLocalStorage } from '../utils.js'
 import { useI18n } from '../i18n.jsx'
 import FilmCard from './FilmCard.jsx'
+import { KindChecks, SearchBox } from './ListControls.jsx'
 
 export default function UniverseDetail({ universe, films, onChange, onDelete, onBack, onOpenFilm, onCreateFilm, onUpdateFilm }) {
   const { t, money, lang } = useI18n()
@@ -9,10 +10,21 @@ export default function UniverseDetail({ universe, films, onChange, onDelete, on
   const [newTitle, setNewTitle] = useState('')
   const [newKind, setNewKind] = useState('film')
   const [existingId, setExistingId] = useState('')
-  const [sort, setSort] = useState('story')
+  const [sort, setSort] = useLocalStorage('cinesim:u-sort', 'story')
+  const [search, setSearch] = useState('')
+  const [kinds, setKinds] = useLocalStorage('cinesim:u-kinds', ['film', 'series', 'season'])
+  const toggleKind = (k) => setKinds((cur) => (cur.includes(k) ? cur.filter((x) => x !== k) : [...cur, k]))
 
   const list = sortFilms(films.filter((f) => f.universeId === universe.id), sort, lang)
   const others = films.filter((f) => f.universeId !== universe.id)
+
+  // Aba de obras: filmes, séries e temporadas habilitadas, com busca e filtro igual à lista inicial
+  const visible = useMemo(() => {
+    const terms = searchTerms(search)
+    const mine = films.filter((f) => f.universeId === universe.id)
+    const entries = [...mine, ...listedSeasons(mine)].filter((f) => kinds.includes(entryKind(f)) && matchesTerms(f, terms))
+    return sortFilms(entries, sort, lang)
+  }, [films, universe.id, kinds, search, sort, lang])
 
   const totals = useMemo(() => {
     const fees = list.reduce((s, f) => s + castTotal(f), 0)
@@ -132,24 +144,33 @@ export default function UniverseDetail({ universe, films, onChange, onDelete, on
             )}
           </div>
 
-          {list.length > 1 && (
-            <div className="filters">
-              <select value={sort} onChange={(e) => setSort(e.target.value)} aria-label={t('sort_label')}>
-                {SORTS.map((m) => <option key={m} value={m}>{t('sort_label')}: {t(`sort_${m}`)}</option>)}
-              </select>
-            </div>
-          )}
           {list.length === 0 ? (
             <div className="empty"><p>{t('universe_no_films')}</p></div>
           ) : (
-            <div className="film-grid">
-              {list.map((f) => (
-                <div key={f.id} className="card-with-action">
-                  <FilmCard film={f} onOpen={onOpenFilm} />
-                  <button className="link small" onClick={() => onUpdateFilm(f.id, { universeId: null })}>{t('u_remove_film')}</button>
+            <>
+              <div className="filters">
+                <SearchBox value={search} onChange={setSearch} />
+                <select value={sort} onChange={(e) => setSort(e.target.value)} aria-label={t('sort_label')}>
+                  {SORTS.map((m) => <option key={m} value={m}>{t('sort_label')}: {t(`sort_${m}`)}</option>)}
+                </select>
+              </div>
+              <KindChecks kinds={kinds} onToggle={toggleKind} />
+
+              {visible.length === 0 ? (
+                <div className="empty"><p>{t('films_empty')}</p></div>
+              ) : (
+                <div className="film-grid">
+                  {visible.map((f) => (
+                    <div key={f.id} className="card-with-action">
+                      <FilmCard film={f} onOpen={onOpenFilm} />
+                      {!f.seasonOf && (
+                        <button className="link small" onClick={() => onUpdateFilm(f.id, { universeId: null })}>{t('u_remove_film')}</button>
+                      )}
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           )}
         </div>
       )}

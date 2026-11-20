@@ -142,7 +142,7 @@ export default function App() {
         onChange={(patch) => updateUniverse(universe.id, patch)}
         onDelete={() => deleteUniverse(universe.id)}
         onBack={() => back('/universes')}
-        onOpenFilm={(id) => go(`/film/${id}`)}
+        onOpenFilm={(id, tab) => go(`/film/${id}${tab ? `/${tab}` : ''}`)}
         onCreateFilm={createFilm}
         onUpdateFilm={updateFilm}
       />

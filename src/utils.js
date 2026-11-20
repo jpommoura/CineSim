@@ -176,6 +176,14 @@ export const listedSeasons = (films) =>
       }))
   })
 
+// Tipo da entrada na lista: filme, série ou temporada (pseudo-obra)
+export const entryKind = (f) => (f.seasonOf ? 'season' : f.kind || 'film')
+
+// Busca: vírgula separa termos; a obra precisa bater com TODOS (no título ou numa tag)
+export const searchTerms = (text) => text.split(',').map((x) => x.trim().toLowerCase()).filter(Boolean)
+export const matchesTerms = (f, terms) =>
+  terms.every((q) => f.title.toLowerCase().includes(q) || f.tags.some((tag) => tag.toLowerCase().includes(q)))
+
 /* ---------- Backup (exportar / importar) ---------- */
 export const buildBackup = (universes, films) => ({
   app: 'cinesim',
